@@ -1,0 +1,68 @@
+stages:
+  - build
+  - test
+  - deploy
+
+cache:
+  paths:
+    - node_modules/
+
+build_job:
+  stage: build
+  script:
+    - npm i -g @nestjs/cli
+    - npm install
+    - nest build
+  image: node:latest
+
+test_job:
+  stage: test
+  script:
+    - npm i -g @nestjs/cli
+    - npm install
+    - npm run test
+    - npm run test:e2e
+    - npm run test:cov
+  image: node:latest
+  allow_failure: true
+  only:
+  - main
+
+deploy_prod:
+  stage: deploy
+  image: node:alpine
+  before_script:
+    # Install ssh-agent if not already installed, it is required by Docker.
+    # (change apt-get to yum if you use a CentOS-based image)
+    - echo "====== Config image ======"
+    - 'which ssh-agent || ( apk add --update openssh )'
+
+    # Add bash
+    - apk add --update bash
+
+    # Add git
+    - apk add --update git
+
+    # Run ssh-agent (inside the build environment)
+    - eval $(ssh-agent -s)
+
+    # Add the SSH key stored in SSH_PRIVATE_KEY variable to the agent store
+    - echo "$TARGET_SERVER_SECRET_KEY_BASE64" | ssh-add -
+
+    # For Docker builds disable host key checking. Be aware that by adding that
+    # you are suspectible to man-in-the-middle attacks.
+    # WARNING: Use this only with the Docker executor, if you use it with shell
+    # you will overwrite your user's SSH config.
+    - mkdir -p ~/.ssh
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+    # In order to properly check the server's host key, assuming you created the
+    # SSH_SERVER_HOSTKEYS variable previously, uncomment the following two lines
+    # instead.
+    # - mkdir -p ~/.ssh
+    # - '[[ -f /.dockerenv ]] && echo "$SSH_SERVER_HOSTKEYS" > ~/.ssh/known_hosts'
+  script:
+    - ssh "$TARGET_SERVER_USER@$TARGET_SERVER_HOST" "ls -la && ./script/deployment/gitlab/nestjs_app_auto_deployment.sh $TARGET_SERVER_APP_FOLDER $GIT_REPOSITORY"
+  environment:
+    name: veone_srv_test
+  only:
+  - main

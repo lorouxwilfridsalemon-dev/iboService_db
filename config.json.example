@@ -1,0 +1,81 @@
+
+{
+    "port": 5000,
+    "limit":{
+        "postData":"500000mb",
+        "urlEncoded":"500000mb"
+    },
+    "db":{
+        "type": "mysql",
+        "host": "localhost",
+        "port": 3306,
+        "username": "root",
+        "password": "root",
+        "database": "starter_template_db",
+        "dropSchema":false,         
+        "autoLoadEntities": true,
+        "synchronize": true,
+        "logging": false
+    },
+    "mail":{
+        "transport": {
+            "host": "smtp.gmail.com",
+            "secure": true,
+            "auth": {
+                "user": "mail@gmail.com",
+                "pass": "password"
+            }
+        },
+        "defaults": {
+            "from": "No Reply <noreply@example.com>"
+        }
+    }
+}
+{
+  "port": 6561,
+  "limit": { "postData": "500000mb", "urlEncoded": "500000mb" },
+  "db": {
+    "type": "mysql",
+    "host": "10.0.3.120",
+    "port": 3306,
+    "username": "matos_db",
+    "password": "bR84r9j9upnwLihx",
+    "database": "matos_db",
+    "dropSchema": false,
+    "autoLoadEntities": true,
+    "synchronize": true,
+    "logging": false
+  },
+  "mail": {
+    "transport": {
+      "host": "smtp.gmail.com",
+      "secure": true,
+      "auth": { "user": "mail@gmail.com", "pass": "password" }
+    },
+    "defaults": { "from": "No Reply <noreply@example.com>" }
+  }
+}
+{
+  "port": 5000,
+  "limit": { "postData": "500000mb", "urlEncoded": "500000mb" },
+  "db": {
+    "type": "mysql",
+    "host": "localhost",
+    "port": 3306,
+    "username": "root",
+    "password": "",
+    "database": "matos",
+    "dropSchema": false,
+    "autoLoadEntities": true,
+    "synchronize": true,
+    "logging": false
+  },
+  "mail": {
+    "transport": {
+      "host": "smtp.gmail.com",
+      "secure": true,
+      "auth": { "user": "mail@gmail.com", "pass": "password" }
+    },
+    "defaults": { "from": "No Reply <noreply@example.com>" }
+  }
+}
