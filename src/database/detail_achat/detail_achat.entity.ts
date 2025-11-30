@@ -4,6 +4,7 @@ import { AchatEntity } from '../achat/achat.entity';
 import { ProduitEntity } from '../produit/produit.entity';
 
 @Entity('detail_achat_dac')
+
 export class DetailAchatEntity { 
  
   @PrimaryGeneratedColumn (DefaultEntity.convertDataType({ type: 'integer', name:'id_dac', length: 11, scale: 0, primary:true, nullable: false, unique: true  }))
