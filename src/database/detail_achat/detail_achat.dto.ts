@@ -8,10 +8,10 @@ export class DetailAchatDto {
   @IsNumber()
   readonly poids: number;
 
-  @IsNumber()
+  @IsInt()
   readonly prixKg: number;
 
-  @IsNumber()
+  @IsInt()
   readonly montant: number;
 
   @IsString()
@@ -19,6 +19,18 @@ export class DetailAchatDto {
 
   @IsString()
   readonly date: string;
+
+  @IsOptional()
+  @IsString()
+  readonly empty1: string;
+
+  @IsOptional()
+  @IsString()
+  readonly empty2: string;
+
+  @IsOptional()
+  @IsString()
+  readonly empty3: string;
 
   @IsInt()
   readonly achat: number;

@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsOptional } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsNumber } from 'class-validator';
 
 export class ProduitDto {
   @IsOptional()
@@ -7,6 +7,10 @@ export class ProduitDto {
 
   @IsString()
   readonly libelle: string;
+
+  @IsOptional()
+  @IsInt()
+  readonly prixKgParDefaut: number;
 
   @IsOptional()
   @IsString()

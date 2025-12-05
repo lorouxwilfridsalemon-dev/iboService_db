@@ -2,7 +2,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGenerat
 import { DefaultEntity } from '../../core/shared/systems/default.entity';
 import { ClientEntity } from '../client/client.entity';
 import { UtilisateurEntity } from '../utilisateur/utilisateur.entity';
-import { SupportEntity } from '../support/support.entity';
 import { DetailAchatEntity } from '../detail_achat/detail_achat.entity';
 
 @Entity('achat_ach')
@@ -12,13 +11,16 @@ export class AchatEntity {
   @PrimaryGeneratedColumn (DefaultEntity.convertDataType({ type: 'integer', name:'id_ach', length: 11, scale: 0, primary:true, nullable: false, unique: true  }))
   id : number;
 
-  @Column (DefaultEntity.convertDataType({ type: 'decimal' , name:'montant_total_ach', length: 10, scale: 2, nullable: true, unique: false  }))
+  // Montant total d'une vente : toujours obligatoire
+  @Column (DefaultEntity.convertDataType({ type: 'integer' , name:'montant_total_ach', length: 11, scale: 0, nullable: false, unique: false  }))
   montantTotal : number;
 
-  @Column (DefaultEntity.convertDataType({ type: 'date' , name:'date_ach', scale: 0, nullable: true, unique: false  }))
+  // Date de la vente : toujours obligatoire
+  @Column (DefaultEntity.convertDataType({ type: 'date' , name:'date_ach', scale: 0, nullable: false, unique: false  }))
   date : Date;
 
-  @Column (DefaultEntity.convertDataType({ type: 'time' , name:'heure_ach', scale: 0, nullable: true, unique: false  }))
+  // Heure de la vente : toujours obligatoire
+  @Column (DefaultEntity.convertDataType({ type: 'time' , name:'heure_ach', scale: 0, nullable: false, unique: false  }))
   heure : string;
 
   @Column (DefaultEntity.convertDataType({ type: 'varchar' , name:'empty1_ach', length: 100, scale: 0, nullable: true, unique: false  }))
@@ -46,10 +48,6 @@ export class AchatEntity {
   @ManyToOne(() => UtilisateurEntity, utilisateur => utilisateur.achats, {onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'utilisateur_idutilisateur' })
   utilisateur : UtilisateurEntity;
-
-  @ManyToOne(() => SupportEntity, support => support.achats, {onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
-  @JoinColumn({ name: 'support_idsupport' })
-  support : SupportEntity;
 
   @OneToMany(() => DetailAchatEntity, detailAchat => detailAchat.achat, {onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
   detailsAchat : DetailAchatEntity[];

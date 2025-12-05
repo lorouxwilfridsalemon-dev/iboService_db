@@ -10,20 +10,34 @@ export class DetailAchatEntity {
   @PrimaryGeneratedColumn (DefaultEntity.convertDataType({ type: 'integer', name:'id_dac', length: 11, scale: 0, primary:true, nullable: false, unique: true  }))
   id : number;
 
-  @Column (DefaultEntity.convertDataType({ type: 'decimal' , name:'poids_dac', length: 10, scale: 3, nullable: true, unique: false  }))
+  // Poids d'une pesée : toujours obligatoire
+  @Column (DefaultEntity.convertDataType({ type: 'decimal' , name:'poids_dac', length: 10, scale: 3, nullable: false, unique: false  }))
   poids : number;
 
-  @Column (DefaultEntity.convertDataType({ type: 'decimal' , name:'prix_kg_dac', length: 10, scale: 2, nullable: true, unique: false  }))
+  // Prix au kilo appliqué sur cette pesée : toujours obligatoire
+  @Column (DefaultEntity.convertDataType({ type: 'integer' , name:'prix_kg_dac', length: 11, scale: 0, nullable: false, unique: false  }))
   prixKg : number;
 
-  @Column (DefaultEntity.convertDataType({ type: 'decimal' , name:'montant_dac', length: 10, scale: 2, nullable: true, unique: false  }))
+  // Montant de la pesée (poids × prixKg) : toujours obligatoire
+  @Column (DefaultEntity.convertDataType({ type: 'integer' , name:'montant_dac', length: 11, scale: 0, nullable: false, unique: false  }))
   montant : number;
 
-  @Column (DefaultEntity.convertDataType({ type: 'timestamp' , name:'heure_dac', scale: 0, nullable: true, unique: false  }))
+  // Heure de la pesée : toujours obligatoire
+  @Column (DefaultEntity.convertDataType({ type: 'timestamp' , name:'heure_dac', scale: 0, nullable: false, unique: false  }))
   heure : Date;
 
-  @Column (DefaultEntity.convertDataType({ type: 'date' , name:'Date_dac', scale: 0, nullable: true, unique: false  }))
+  // Date de la pesée : toujours obligatoire
+  @Column (DefaultEntity.convertDataType({ type: 'date' , name:'Date_dac', scale: 0, nullable: false, unique: false  }))
   date : Date;
+
+  @Column (DefaultEntity.convertDataType({ type: 'varchar' , name:'empty1_dac', length: 100, scale: 0, nullable: true, unique: false  }))
+  empty1 : string;
+
+  @Column (DefaultEntity.convertDataType({ type: 'varchar' , name:'empty2_dac', length: 100, scale: 0, nullable: true, unique: false  }))
+  empty2 : string;
+
+  @Column (DefaultEntity.convertDataType({ type: 'varchar' , name:'empty3_dac', length: 100, scale: 0, nullable: true, unique: false  }))
+  empty3 : string;
 
   @ManyToOne(() => AchatEntity, achat => achat.detailsAchat, {onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'commande_idcommande' })

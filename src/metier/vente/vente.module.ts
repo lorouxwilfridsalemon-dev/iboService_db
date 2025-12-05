@@ -9,7 +9,6 @@ import { DetailAchatEntity } from '../../database/detail_achat/detail_achat.enti
 import { ClientEntity } from '../../database/client/client.entity';
 import { ProduitEntity } from '../../database/produit/produit.entity';
 import { UtilisateurEntity } from '../../database/utilisateur/utilisateur.entity';
-import { SupportEntity } from '../../database/support/support.entity';
 import { TypeClientEntity } from '../../database/type_client/type_client.entity';
 
 /**
@@ -26,7 +25,6 @@ import { TypeClientEntity } from '../../database/type_client/type_client.entity'
       ClientEntity,
       ProduitEntity,
       UtilisateurEntity,
-      SupportEntity,
       TypeClientEntity,
     ]),
   ],

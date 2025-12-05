@@ -6,7 +6,6 @@ import { StatutModule } from './statut';
 import { TypeClientModule } from './type_client';
 import { UtilisateurModule } from './utilisateur';
 import { ClientModule } from './client';
-import { SupportModule } from './support';
 import { ProduitModule } from './produit';
 import { AchatModule } from './achat';
 import { DetailAchatModule } from './detail_achat';
@@ -24,7 +23,6 @@ import { DetailAchatModule } from './detail_achat';
     TypeClientModule,
     UtilisateurModule,
     ClientModule,
-    SupportModule,
     ProduitModule,
     AchatModule,
     DetailAchatModule,
@@ -40,7 +38,6 @@ import { DetailAchatModule } from './detail_achat';
     TypeClientModule,
     UtilisateurModule,
     ClientModule,
-    SupportModule,
     ProduitModule,
     AchatModule,
     DetailAchatModule,

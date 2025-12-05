@@ -5,7 +5,7 @@ export class AchatDto {
   @IsInt()
   readonly id: number;
 
-  @IsNumber()
+  @IsInt()
   readonly montantTotal: number;
 
   @IsString()
@@ -42,9 +42,5 @@ export class AchatDto {
   @IsOptional()
   @IsInt()
   readonly utilisateur: number;
-
-  @IsOptional()
-  @IsInt()
-  readonly support: number;
 }
 
