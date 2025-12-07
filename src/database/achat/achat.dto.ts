@@ -8,11 +8,6 @@ export class AchatDto {
   @IsInt()
   readonly montantTotal: number;
 
-  @IsString()
-  readonly date: string;
-
-  @IsString()
-  readonly heure: string;
 
   @IsOptional()
   @IsString()

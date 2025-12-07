@@ -14,7 +14,7 @@ export class ProduitEntity {
 
   // Prix au kilogramme paramétrable pour ce poisson (optionnel mais recommandé)
   @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_pro', length: 11, scale: 0, nullable: true, unique: false }))
-  prixKgParDefaut: number;
+  prixKg: number;
 
   @Column(DefaultEntity.convertDataType({ type: 'varchar', name: 'empty1_pro', length: 100, scale: 0, nullable: true, unique: false }))
   empty1: string;

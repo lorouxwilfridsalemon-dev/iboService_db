@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
+import { EntityManager, getManager } from 'typeorm';
 import { AchatEntity } from '../../database/achat/achat.entity';
 import { DetailAchatEntity } from '../../database/detail_achat/detail_achat.entity';
 import { ClientEntity } from '../../database/client/client.entity';
 import { ProduitEntity } from '../../database/produit/produit.entity';
 import { UtilisateurEntity } from '../../database/utilisateur/utilisateur.entity';
 import { TypeClientEntity } from '../../database/type_client/type_client.entity';
+import { get } from 'http';
+
 
 @Injectable()
 export class VenteMetierService {
@@ -52,20 +54,26 @@ export class VenteMetierService {
       });
 
       // ÉTAPE 3 : Calculer le montant total
+      // On doit d'abord charger les produits pour obtenir leurs prixKg
       let montantTotal = 0;
-      for (const detail of venteData.details) {
-        montantTotal += detail.poids * detail.prixKg;
+      for (const element of venteData.details) {
+        // Charger le produit pour obtenir son prixKg
+        const produit = await entityManager.findOne(ProduitEntity, {
+          where: { id: element.produitId }
+        });
+        // Utiliser le prixKg du produit depuis la base de données
+        const prixKg = produit.prixKg || 0; // Si prixKg est null, utiliser 0
+        montantTotal += element.poids * prixKg;
       }
 
       // ÉTAPE 4 : Créer l'achat
 
       const now = new Date();
+
       const achat = entityManager.create(AchatEntity, {
         client: client,
         utilisateur: utilisateur,
         montantTotal: montantTotal,
-        date: now,
-        heure: now.toTimeString().split(' ')[0],
         geler: 0,
         dateCreation: now,
         idusrcreation: utilisateur.id
@@ -78,23 +86,25 @@ export class VenteMetierService {
       const detailsCrees = [];
 
       for (const element of venteData.details) {
-        // Charger le produit
+        // Charger le produit pour obtenir son prixKg
         const produit = await entityManager.findOne(ProduitEntity, {
           where: { id: element.produitId }
         });
 
-        // Calculer le montant
-        const montant = element.poids * element.prixKg;
+        // Utiliser le prixKg du produit depuis la base de données
+        const prixKg = produit.prixKg || 0; // Si prixKg est null, utiliser 0
+
+        // Calculer le montant (poids × prixKg du produit)
+        const montant = element.poids * prixKg;
 
         // Créer le détail
+        // Note: prixKg n'est plus stocké dans DetailAchatEntity, il est dans ProduitEntity
         const detail = entityManager.create(DetailAchatEntity, {
           achat: achatSauvegarde,
           produit: produit,
           poids: element.poids,
-          prixKg: element.prixKg,
           montant: montant,
-          date: now,
-          heure: now
+          dateCreation: now
         });
 
         const detailSauvegarde = await entityManager.save(DetailAchatEntity, detail);
@@ -102,7 +112,7 @@ export class VenteMetierService {
         detailsCrees.push({
           produit: produit.libelle,
           poids: detailSauvegarde.poids,
-          prixKg: detailSauvegarde.prixKg,
+          prixKg: prixKg, // Prix utilisé (depuis le produit)
           montant: detailSauvegarde.montant
         });
       }
@@ -125,4 +135,124 @@ export class VenteMetierService {
       };
     });
   }
+  async venteParJour(query: any) {
+    const manager = getManager();
+    const { dateJour } = query;
+
+    const ventesDuJour = await manager.createQueryBuilder(AchatEntity, 'achat')
+      .select([
+        "achat",
+        "client",
+        "typeClient",
+        "detailAchat",
+        "produit",
+        "utilisateur"
+      ])
+      .leftJoin("achat.utilisateur", "utilisateur")
+      .leftJoin("achat.client", "client")
+      .leftJoin("client.typeClient", "typeClient")
+      .leftJoin("achat.detailsAchat", "detailAchat")
+      .leftJoin("detailAchat.produit", "produit")
+      .where('achat.geler = 0')
+      .andWhere('TO_DAYS(achat.dateCreation) = TO_DAYS(:dateJour)', { dateJour })
+      .getMany();
+
+    // Ajouter le nombre de pesées pour chaque vente
+    const resultatsAvecPesees = ventesDuJour.map(achat => {
+      // Compter le nombre de pesées (détails d'achat)
+      const nombrePesees = achat.detailsAchat?.length || 0;
+
+      // Retourner l'achat avec la propriété nombrePesees ajoutée
+      return {
+        ...achat,
+        nombrePesees: nombrePesees
+      };
+    });
+
+    return resultatsAvecPesees;
+  }
+
+  async venteParMois(query: any) {
+    const manager = getManager();
+    const { mois, annee } = query;
+
+    const moisInt = parseInt(mois, 10);
+    const anneeInt = parseInt(annee, 10);
+
+    const ventesDuMois = await manager.createQueryBuilder(AchatEntity, 'achat')
+      .select([
+        "achat",
+        "client",
+        "typeClient",
+        "detailAchat",
+        "produit",
+        "utilisateur"
+      ])
+      .leftJoin("achat.utilisateur", "utilisateur")
+      .leftJoin("achat.client", "client")
+      .leftJoin("client.typeClient", "typeClient")
+      .leftJoin("achat.detailsAchat", "detailAchat")
+      .leftJoin("detailAchat.produit", "produit")
+      .where('achat.geler = 0')
+      .andWhere('MONTH(achat.dateCreation) = :mois', { mois: moisInt })
+      .andWhere('YEAR(achat.dateCreation) = :annee', { annee: anneeInt })
+      .getMany();
+
+    // Ajouter le nombre de pesées pour chaque vente
+    const resultatsAvecPesees = ventesDuMois.map(achat => {
+      // Compter le nombre de pesées (détails d'achat)
+      const nombrePesees = achat.detailsAchat?.length || 0;
+
+      // Retourner l'achat avec la propriété nombrePesees ajoutée
+      return {
+        ...achat,
+        nombrePesees: nombrePesees
+      };
+    });
+
+    return resultatsAvecPesees;
+  }
+
+  async venteParAnnee(query: any) {
+    const manager = getManager();
+    const { annee } = query;
+
+    const anneeInt = parseInt(annee, 10);
+
+    const ventesDeLAnnee = await manager.createQueryBuilder(AchatEntity, 'achat')
+      .select([
+        "achat",
+        "client",
+        "typeClient",
+        "detailAchat",
+        "produit",
+        "utilisateur"
+      ])
+      .leftJoin("achat.utilisateur", "utilisateur")
+      .leftJoin("achat.client", "client")
+      .leftJoin("client.typeClient", "typeClient")
+      .leftJoin("achat.detailsAchat", "detailAchat")
+      .leftJoin("detailAchat.produit", "produit")
+      .where('achat.geler = 0')
+      .andWhere('YEAR(achat.dateCreation) = :annee', { annee: anneeInt })
+      .getMany();
+
+    // Ajouter le nombre de pesées pour chaque vente
+    const resultatsAvecPesees = ventesDeLAnnee.map(achat => {
+      // Compter le nombre de pesées (détails d'achat)
+      const nombrePesees = achat.detailsAchat?.length || 0;
+
+      // Retourner l'achat avec la propriété nombrePesees ajoutée
+      return {
+        ...achat,
+        nombrePesees: nombrePesees
+      };
+    });
+
+    return resultatsAvecPesees;
+
+
+
+  }
+
 }

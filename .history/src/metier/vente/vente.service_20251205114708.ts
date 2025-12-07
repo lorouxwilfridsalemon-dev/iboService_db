@@ -1,0 +1,183 @@
+import { Injectable } from '@nestjs/common';
+import { EntityManager, getManager } from 'typeorm';
+import { AchatEntity } from '../../database/achat/achat.entity';
+import { DetailAchatEntity } from '../../database/detail_achat/detail_achat.entity';
+import { ClientEntity } from '../../database/client/client.entity';
+import { ProduitEntity } from '../../database/produit/produit.entity';
+import { UtilisateurEntity } from '../../database/utilisateur/utilisateur.entity';
+import { TypeClientEntity } from '../../database/type_client/type_client.entity';
+import { get } from 'http';
+
+
+@Injectable()
+export class VenteMetierService {
+
+  constructor(
+    private readonly entityManager: EntityManager,
+  ) { }
+
+
+  async creerVente(venteData: any) {
+    return await this.entityManager.transaction(async (entityManager) => {
+      // ÉTAPE 1 : Gérer le client
+      // Chercher si le client existe déjà (par numéro)
+      let client = await entityManager.findOne(ClientEntity, {
+        where: { numero: venteData.clientNumero }
+      });
+
+      // Si pas trouvé → créer un nouveau client
+      if (!client) {
+        console.log(`Nouveau client: ${venteData.clientNom}`);
+
+        // Charger le type de client
+        const typeClient = await entityManager.findOne(TypeClientEntity, {
+          where: { id: venteData.clientTypeClient }
+        });
+
+        // Créer le client
+        client = entityManager.create(ClientEntity, {
+          nomPrenom: venteData.clientNom,
+          numero: venteData.clientNumero,
+          typeClient: typeClient,
+          geler: 0,
+          dateCreation: new Date(),
+          idusrcreation: venteData.utilisateurId
+        });
+
+        client = await entityManager.save(ClientEntity, client);
+      } else {
+        console.log(`Client existant: ${client.nomPrenom}`);
+      }
+      // ÉTAPE 2 : Charger utilisateur
+      const utilisateur = await entityManager.findOne(UtilisateurEntity, {
+        where: { id: venteData.utilisateurId }
+      });
+
+      // ÉTAPE 3 : Calculer le montant total
+      let montantTotal = 0;
+      for (const detail of venteData.details) {
+        montantTotal += detail.poids * detail.prixKg;
+      }
+
+      // ÉTAPE 4 : Créer l'achat
+
+      const now = new Date();
+      const achat = entityManager.create(AchatEntity, {
+        client: client,
+        utilisateur: utilisateur,
+        montantTotal: montantTotal,
+        date: now,
+        heure: now.toTimeString().split(' ')[0],
+        geler: 0,
+        dateCreation: now,
+        idusrcreation: utilisateur.id
+      });
+
+      const achatSauvegarde = await entityManager.save(AchatEntity, achat);
+
+      // ÉTAPE 5 : Créer les détails
+
+      const detailsCrees = [];
+
+      for (const element of venteData.details) {
+        // Charger le produit
+        const produit = await entityManager.findOne(ProduitEntity, {
+          where: { id: element.produitId }
+        });
+
+        // Calculer le montant
+        const montant = element.poids * element.prixKg;
+
+        // Créer le détail
+        const detail = entityManager.create(DetailAchatEntity, {
+          achat: achatSauvegarde,
+          produit: produit,
+          poids: element.poids,
+          prixKg: element.prixKg,
+          montant: montant,
+          date: now,
+          heure: now
+        });
+
+        const detailSauvegarde = await entityManager.save(DetailAchatEntity, detail);
+
+        detailsCrees.push({
+          produit: produit.libelle,
+          poids: detailSauvegarde.poids,
+          prixKg: detailSauvegarde.prixKg,
+          montant: detailSauvegarde.montant
+        });
+      }
+
+      // ÉTAPE 6 : Retourner le résultat      
+      return {
+        success: true,
+        message: 'Vente créée avec succès',
+        data: {
+          venteId: achatSauvegarde.id,
+          client: {
+            id: client.id,
+            nom: client.nomPrenom,
+            numero: client.numero
+          },
+          montantTotal: achatSauvegarde.montantTotal,
+          nombrePesees: detailsCrees.length,
+          details: detailsCrees
+        }
+      };
+    });
+  }
+  async venteParJour(query: any) {
+
+    const manager = getManager();
+    const { dateJour } = query;
+
+    const jour = await manager.createQueryBuilder(AchatEntity, 'achat')
+      .select([
+        "achat",
+        "client",
+        "typeClient",
+        "detailAchat",
+        "produit",
+        "utilisateur"
+
+      ])
+      .leftJoin("achat.utilisateur", "utilisateur")
+      .leftJoin("achat.client", "client")
+      .leftJoin("client.typeClient", "typeClient")
+      .leftJoin("achat.detail_achat", "detailAchat")
+      .leftJoin("detailAchat.produit", "produit")
+      .where('achat.geler = 0')
+      .andWhere('TO_DAYS(achat.dateCreation) = TO_DAYS(:dateJour)', { dateJour })
+      .getMany();
+
+    return jour;
+  }
+}
+
+// async venteParJour(query: any) {
+//   const manager = getManager();
+//   const { dateJour } = query;
+
+//   const jour = await manager.createQueryBuilder(AchatEntity, 'achat')
+//     .select([
+//       "achat",
+//       "client",
+//       "typeClient",
+//       "detailAchat",
+//       "produit",
+//       "utilisateur"
+//     ])
+//     .leftJoin("achat.utilisateur", "utilisateur")
+//     .leftJoin("achat.client", "client")
+//     .leftJoin("client.typeClient", "typeClient")
+//     .leftJoin("achat.detail_achat", "detailAchat")
+//     .leftJoin("detailAchat.produit", "produit")
+//     .where('achat.geler = 0')
+//     .andWhere('TO_DAYS(achat.dateCreation) = TO_DAYS(:dateJour)', { dateJour })
+//     .getMany();
+
+//   return jour;
+// }
+
+

@@ -5,18 +5,33 @@ import { VenteMetierService } from './vente.service';
 
 
 //  * CONTROLLER DE VENTE
- 
+
 @Catch()
 @UseInterceptors(LoggingInterceptor)
 @Controller('metier/vente')
 export class VenteMetierController {
-  
+
   constructor(
     private readonly venteMetierService: VenteMetierService,
-  ) {}
+  ) { }
 
-  @Post('creer')
+  @Post('creerVente')
   async creerVente(@Body() venteData: any) {
     return await this.venteMetierService.creerVente(venteData);
+  }
+
+  @Post('venteParJour')
+  async venteParJour(@Body() query: any) {
+    return await this.venteMetierService.venteParJour(query);
+  }
+
+  @Post('venteParMois')
+  async venteParMois(@Body() query: any) {
+    return await this.venteMetierService.venteParMois(query);
+  }
+
+  @Post('venteParAnnee')
+  async venteParAnnee(@Body() query: any) {
+    return await this.venteMetierService.venteParAnnee(query);
   }
 }

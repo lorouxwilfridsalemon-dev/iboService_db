@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { EmployeModule } from './';
+
 import { CONFIG } from '../app.constant';
-import { StatutModule } from './statut';
+
 import { TypeClientModule } from './type_client';
 import { UtilisateurModule } from './utilisateur';
 import { ClientModule } from './client';
@@ -16,9 +16,8 @@ import { DetailAchatModule } from './detail_achat';
     TypeOrmModule.forRoot(CONFIG().db),
 
     // Administration
-    EmployeModule,
-    StatutModule,
-    
+
+
     // Gestion Thon
     TypeClientModule,
     UtilisateurModule,
@@ -31,9 +30,8 @@ import { DetailAchatModule } from './detail_achat';
   controllers: [],
   exports: [
     // Administration
-    EmployeModule,
-    StatutModule,
-    
+
+
     // Gestion Thon
     TypeClientModule,
     UtilisateurModule,
@@ -43,4 +41,4 @@ import { DetailAchatModule } from './detail_achat';
     DetailAchatModule,
   ],
 })
-export class DatabaseModule {}
+export class DatabaseModule { }

@@ -1,51 +1,50 @@
-import { Body, Controller, Get, Post, Query, UseInterceptors } from '@nestjs/common';
+import { Body, Catch, Controller, Get, Param, Post, Put, Delete, UseGuards, UseInterceptors } from '@nestjs/common';
+import { ValidationPipe } from '../../core/shared/pipes/validation.pipe';
 import { LoggingInterceptor } from '../../core/shared/interceptors/logging.interceptor';
 import { EtatMetierService } from './etat.service';
+import { Transaction, TransactionManager, EntityManager, getManager } from 'typeorm';
+import { UtilisateurEntity } from 'src/database';
 
-@Controller('metier/etat')
+@Catch()
 @UseInterceptors(LoggingInterceptor)
+@Controller('metier/etat')
 export class EtatMetierController {
-  constructor(
-    private readonly etatMetierService: EtatMetierService,
-  ) {}
+    constructor(
+        private readonly etatMetierService: EtatMetierService,
+    ) { }
 
-  /**
-   * GET /metier/etat/jour?date=2025-11-01
-   * Récupère les statistiques de ventes pour un jour spécifique
-   */
-  @Get('jour')
-  async getEtatJour(@Query('date') date: string) {
-    return await this.etatMetierService.getEtatJour(date);
-  }
+    //     @Post('demandeEtat')
+    //     @Transaction()
+    //     async saveAjouterEtat(@Body(new ValidationPipe()) etatDto: EtatDto,  @TransactionManager() manager: EntityManager) {
+    //         const result = this.etatMetierService.demandeEtat(manager, etatDto);
+    //         return result;
+    //     }
 
-  /**
-   * GET /metier/etat/semaine?date=2025-11-01
-   * Récupère les statistiques de ventes pour une semaine
-   */
-  @Get('semaine')
-  async getEtatSemaine(@Query('date') date: string) {
-    return await this.etatMetierService.getEtatSemaine(date);
-  }
+    //     @Post('ModifierEtat')
+    //     @Transaction()
+    //     async ModifierEtat(@Body(new ValidationPipe()) etatDto: EtatDto,  @TransactionManager() manager: EntityManager) {
+    //         const result = this.etatMetierService.updateEtat(manager, etatDto);
+    //         return result;
+    //     }
 
-  /**
-   * GET /metier/etat/mois?mois=11&annee=2025
-   * Récupère les statistiques de ventes pour un mois
-   */
-  @Get('mois')
-  async getEtatMois(
-    @Query('mois') mois: number,
-    @Query('annee') annee: number,
-  ) {
-    return await this.etatMetierService.getEtatMois(mois, annee);
-  }
+    //     @Post('attribuerEtat')
+    //     @Transaction()
+    //     async attribuerEtat(@Body(new ValidationPipe()) etatDto: EtatDto,  @TransactionManager() manager: EntityManager) {
+    //         const result = this.etatMetierService.attribuerEtat(manager, etatDto);
+    //         return result;
+    //     }
 
-  /**
-   * GET /metier/etat/annee?annee=2025
-   * Récupère les statistiques de ventes pour une année
-   */
-  @Get('annee')
-  async getEtatAnnee(@Query('annee') annee: number) {
-    return await this.etatMetierService.getEtatAnnee(annee);
-  }
+    //     @Post('rejeterEtat')
+    //     @Transaction()
+    //     async rejeterEtat(@CurrentUser() user:UtilisateurEntity, @Body(new ValidationPipe()) etatDto: EtatDto,  @TransactionManager() manager: EntityManager) {
+    //         const result = this.etatMetierService.rejeterEtat(manager, etatDto, user);
+    //         return result;
+    //     }
+
+    //     // @Post('SupprimerEtatAttente')
+    //     // @Transaction()
+    //     // async SupprimerEtatAttente(@Body(new ValidationPipe()) etatDto: EtatDto,  @TransactionManager() manager: EntityManager) {
+    //     //     const result = this.etatMetierService.SupprimerEtatAttente(manager, etatDto);
+    //     //     return result;
+    //     // }
 }
-

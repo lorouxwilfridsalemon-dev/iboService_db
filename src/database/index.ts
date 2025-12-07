@@ -1,6 +1,4 @@
 // administration
-export * from './employe';
-export * from './statut';
 
 // metier - Gestion Thon
 export * from './type_client';

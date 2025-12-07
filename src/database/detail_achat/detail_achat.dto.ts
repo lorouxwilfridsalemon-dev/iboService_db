@@ -9,16 +9,7 @@ export class DetailAchatDto {
   readonly poids: number;
 
   @IsInt()
-  readonly prixKg: number;
-
-  @IsInt()
   readonly montant: number;
-
-  @IsString()
-  readonly heure: string;
-
-  @IsString()
-  readonly date: string;
 
   @IsOptional()
   @IsString()
