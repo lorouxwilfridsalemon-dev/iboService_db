@@ -34,4 +34,5 @@ export class VenteMetierController {
   async venteParAnnee(@Body() query: any) {
     return await this.venteMetierService.venteParAnnee(query);
   }
-}
+ }
+

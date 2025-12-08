@@ -34,11 +34,11 @@ export class AchatEntity {
   idusrcreation: number;
 
   @ManyToOne(() => ClientEntity, client => client.achats, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
-  @JoinColumn({ name: 'client_idclient' })
+  @JoinColumn({ name: 'idclient' })
   client: ClientEntity;
 
   @ManyToOne(() => UtilisateurEntity, utilisateur => utilisateur.achats, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
-  @JoinColumn({ name: 'utilisateur_idutilisateur' })
+  @JoinColumn({ name: 'idutilisateur' })
   utilisateur: UtilisateurEntity;
 
   @OneToMany(() => DetailAchatEntity, detailAchat => detailAchat.achat, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })

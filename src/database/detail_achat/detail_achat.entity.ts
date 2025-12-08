@@ -32,7 +32,7 @@ export class DetailAchatEntity {
   empty3: string;
 
   @ManyToOne(() => AchatEntity, achat => achat.detailsAchat, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
-  @JoinColumn({ name: 'commande_idcommande' })
+  @JoinColumn({ name: 'idachat' })
   achat: AchatEntity;
 
   @ManyToOne(() => ProduitEntity, produit => produit.detailsAchat, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })

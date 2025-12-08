@@ -35,7 +35,7 @@ export class ClientEntity {
   idusrcreation: number;
 
   @ManyToOne(() => TypeClientEntity, typeClient => typeClient.clients, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
-  @JoinColumn({ name: 'type_client_idtype_client' })
+  @JoinColumn({ name: 'idtype_client' })
   typeClient: TypeClientEntity;
 
   @OneToMany(() => AchatEntity, achat => achat.client, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
