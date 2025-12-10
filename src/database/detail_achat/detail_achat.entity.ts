@@ -1,10 +1,12 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { DefaultEntity } from '../../core/shared/systems/default.entity';
 import { AchatEntity } from '../achat/achat.entity';
 import { ProduitEntity } from '../produit/produit.entity';
 
 @Entity('detail_achat_dac')
-
+@Index('fx_achat_idx_dac', ['achat'])
+@Index('fx_produit_idx_dac', ['produit'])
+@Index('fx_date_creation_idx_dac', ['dateCreation'])
 export class DetailAchatEntity {
 
   @PrimaryGeneratedColumn(DefaultEntity.convertDataType({ type: 'integer', name: 'id_dac', length: 11, scale: 0, primary: true, nullable: false, unique: true }))

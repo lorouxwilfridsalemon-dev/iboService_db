@@ -5,6 +5,8 @@ import { AchatEntity } from '../achat/achat.entity';
 
 @Entity('client_cli')
 @Index('fx_idusrcreation_idx_cli', ['idusrcreation'])
+@Index('fx_geler_idx_cli', ['geler'])
+@Index('fx_type_client_idx_cli', ['typeClient'])
 export class ClientEntity {
 
   @PrimaryGeneratedColumn(DefaultEntity.convertDataType({ type: 'integer', name: 'id_cli', length: 11, scale: 0, primary: true, nullable: false, unique: true }))

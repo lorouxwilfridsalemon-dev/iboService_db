@@ -1,9 +1,11 @@
 import { Column, Entity, Index, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { DefaultEntity } from '../../core/shared/systems/default.entity';
 import { DetailAchatEntity } from '../detail_achat/detail_achat.entity';
+import { HistoriqueProduitEntity } from '../historique_produit/historique_produit.entity';
 
 @Entity('produit_pro')
 @Index('fx_idusrcreation_idx_pro', ['idusrcreation'])
+@Index('fx_geler_idx_pro', ['geler'])
 export class ProduitEntity {
 
   @PrimaryGeneratedColumn(DefaultEntity.convertDataType({ type: 'integer', name: 'id_pro', length: 11, scale: 0, primary: true, nullable: false, unique: true }))
@@ -15,6 +17,14 @@ export class ProduitEntity {
   // Prix au kilogramme paramétrable pour ce poisson (optionnel mais recommandé)
   @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_pro', length: 11, scale: 0, nullable: true, unique: false }))
   prixKg: number;
+
+  // Prix avec réduction 1 tonne (ex: 2750 FCFA = 3000 - 250)
+  @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_1_tonne_pro', length: 11, scale: 0, nullable: true, unique: false }))
+  prixKg1Tonne: number;
+
+  // Prix avec réduction 3 tonnes (ex: 2500 FCFA = 3000 - 500)
+  @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_3_tonnes_pro', length: 11, scale: 0, nullable: true, unique: false }))
+  prixKg3Tonnes: number;
 
   @Column(DefaultEntity.convertDataType({ type: 'varchar', name: 'empty1_pro', length: 100, scale: 0, nullable: true, unique: false }))
   empty1: string;
@@ -36,6 +46,9 @@ export class ProduitEntity {
 
   @OneToMany(() => DetailAchatEntity, detailAchat => detailAchat.produit, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
   detailsAchat: DetailAchatEntity[];
+
+  @OneToMany(() => HistoriqueProduitEntity, historiqueProduit => historiqueProduit.produit, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
+  historiques: HistoriqueProduitEntity[];
 
   constructor(init?: Partial<any>) {
     Object.assign(this, init);

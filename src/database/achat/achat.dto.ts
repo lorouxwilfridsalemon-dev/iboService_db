@@ -8,6 +8,14 @@ export class AchatDto {
   @IsInt()
   readonly montantTotal: number;
 
+  @IsOptional()
+  @IsInt()
+  readonly montantPaye: number;
+
+  @IsOptional()
+  @IsInt()
+  readonly solde: number;
+
 
   @IsOptional()
   @IsString()
@@ -37,5 +45,9 @@ export class AchatDto {
   @IsOptional()
   @IsInt()
   readonly utilisateur: number;
+
+  @IsOptional()
+  @IsInt()
+  readonly modalitePaiement: number;
 }
 

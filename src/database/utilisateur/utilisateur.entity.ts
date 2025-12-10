@@ -4,6 +4,7 @@ import { AchatEntity } from '../achat/achat.entity';
 
 @Entity('utilisateur_uti')
 @Index('fx_idusrcreation_idx_uti', ['idusrcreation'])
+@Index('fx_geler_idx_uti', ['geler'])
 export class UtilisateurEntity {
 
   @PrimaryGeneratedColumn(DefaultEntity.convertDataType({ type: 'integer', name: 'id_uti', length: 11, scale: 0, primary: true, nullable: false, unique: true }))

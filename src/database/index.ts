@@ -7,5 +7,7 @@ export * from './client';
 export * from './produit';
 export * from './achat';
 export * from './detail_achat';
+export * from './historique_produit';
+export * from './modalite_paiement';
 
 // others

@@ -4,6 +4,7 @@ import { ClientEntity } from '../client/client.entity';
 
 @Entity('type_client_tyc')
 @Index('fx_idusrcreation_idx_tyc', ['idusrcreation'])
+@Index('fx_geler_idx_tyc', ['geler'])
 export class TypeClientEntity {
 
   @PrimaryGeneratedColumn(DefaultEntity.convertDataType({ type: 'integer', name: 'id_tyc', length: 11, scale: 0, primary: true, nullable: false, unique: true }))

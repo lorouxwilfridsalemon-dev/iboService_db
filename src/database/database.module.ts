@@ -9,6 +9,8 @@ import { ClientModule } from './client';
 import { ProduitModule } from './produit';
 import { AchatModule } from './achat';
 import { DetailAchatModule } from './detail_achat';
+import { HistoriqueProduitModule } from './historique_produit';
+import { ModalitePaiementModule } from './modalite_paiement';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { DetailAchatModule } from './detail_achat';
     ProduitModule,
     AchatModule,
     DetailAchatModule,
+    HistoriqueProduitModule,
+    ModalitePaiementModule,
   ],
   providers: [],
   controllers: [],
@@ -39,6 +43,8 @@ import { DetailAchatModule } from './detail_achat';
     ProduitModule,
     AchatModule,
     DetailAchatModule,
+    HistoriqueProduitModule,
+    ModalitePaiementModule,
   ],
 })
 export class DatabaseModule { }
