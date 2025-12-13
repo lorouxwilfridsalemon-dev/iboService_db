@@ -1,7 +1,7 @@
 # 📘 Guide Complet : Tester l'API Vente avec Postman
 
 **Documentation pour développeur junior**  
-*Comment tester tous les endpoints du module "métier vente"*
+_Comment tester tous les endpoints du module "métier vente"_
 
 ---
 
@@ -11,10 +11,11 @@
 2. [Structure des tables](#2-structure-des-tables)
 3. [Endpoint 1 : Créer une vente](#endpoint-1-créer-une-vente)
 4. [Endpoint 2 : Ventes par jour](#endpoint-2-ventes-par-jour)
-5. [Endpoint 3 : Ventes par mois](#endpoint-3-ventes-par-mois)
-6. [Endpoint 4 : Ventes par année](#endpoint-4-ventes-par-année)
-7. [Erreurs fréquentes](#erreurs-fréquentes)
-8. [Comment ça fonctionne techniquement](#comment-ça-fonctionne-techniquement)
+5. [Endpoint 3 : Ventes par semaine](#endpoint-3-ventes-par-semaine)
+6. [Endpoint 4 : Ventes par mois](#endpoint-4-ventes-par-mois)
+7. [Endpoint 5 : Ventes par année](#endpoint-5-ventes-par-année)
+8. [Erreurs fréquentes](#erreurs-fréquentes)
+9. [Comment ça fonctionne techniquement](#comment-ça-fonctionne-techniquement)
 
 ---
 
@@ -25,6 +26,7 @@
 **Une vente = 1 client achète plusieurs produits (pesées)**
 
 Imaginez un marché aux poissons :
+
 - Un client arrive avec plusieurs poissons différents
 - Chaque poisson est pesé séparément (c'est une "pesée" = un détail)
 - On calcule : `montant = poids × prix_au_kg`
@@ -33,6 +35,7 @@ Imaginez un marché aux poissons :
 ### 📊 Exemple concret
 
 **Scénario** : Amadou Diallo achète :
+
 - 25 kg de Thon à 2000 FCFA/kg = 50 000 FCFA
 - 15 kg de Sardine à 1500 FCFA/kg = 22 500 FCFA
 - **Total de la vente = 72 500 FCFA**
@@ -40,21 +43,37 @@ Imaginez un marché aux poissons :
 ### 🔄 Workflow d'une vente
 
 ```
-1. Client arrive → On cherche s'il existe déjà (par numéro)
+1. Client arrive → On détermine le type de client
+   ├─ Type Client ID = 1 → Client Normal
+   └─ Type Client ID = 2 → Gros Client
+
+2. Si Client Normal :
+   ├─ On cherche s'il existe déjà (par numéro)
    ├─ Si nouveau → On le crée dans la base
    └─ Si existant → On utilise celui qui existe
 
-2. Pour chaque produit acheté :
-   ├─ On charge le produit depuis la base
-   ├─ On récupère son prix_kg
-   ├─ On calcule : montant = poids × prix_kg
-   └─ On crée un "détail" (une pesée)
+3. Si Gros Client :
+   └─ On charge directement le client par ID
 
-3. On additionne tous les montants → montant total
+4. Calcul du poids total (toutes les pesées additionnées)
 
-4. On crée l'achat (la vente globale)
+5. Calcul du prix au kg selon :
+   ├─ Gros Client → prixKgGrosClient (prix fixe)
+   └─ Client Normal → prix selon poids total
+       ├─ ≥ 3000 kg → prixKg3Tonnes
+       ├─ ≥ 1000 kg → prixKg1Tonne
+       └─ < 1000 kg → prixKg (prix de base)
 
-5. On crée tous les détails (les pesées)
+6. Calcul du montant total = poids total × prix au kg
+
+7. Gestion du paiement :
+   ├─ montantPaye (montant payé par le client)
+   ├─ solde = montantTotal - montantPaye
+   └─ modalitePaiement (ID fixe : 1 = Espèces)
+
+8. On crée l'achat (la vente globale)
+
+9. On crée tous les détails (les pesées)
 ```
 
 ---
@@ -65,58 +84,80 @@ Imaginez un marché aux poissons :
 
 **Une ligne = Une vente complète**
 
-| Colonne | Type | Obligatoire | Description |
-|--------|------|------------|-------------|
-| `id_ach` | integer | ✅ | ID unique (auto-généré) |
-| `montant_total_ach` | integer | ✅ | Montant total de la vente |
-| `client_idclient` | integer | ✅ | ID du client (foreign key) |
-| `utilisateur_idutilisateur` | integer | ✅ | ID de l'utilisateur qui a fait la vente |
-| `date_creation_ach` | timestamp | ✅ | Date/heure de création (auto) |
-| `geler_ach` | integer | ✅ | 0 = actif, 1 = gelé |
+| Colonne                     | Type      | Obligatoire | Description                                 |
+| --------------------------- | --------- | ----------- | ------------------------------------------- |
+| `id_ach`                    | integer   | ✅          | ID unique (auto-généré)                     |
+| `montant_total_ach`         | integer   | ✅          | Montant total de la vente                   |
+| `montant_paye_ach`          | integer   | ❌          | Montant payé par le client (défaut: 0)      |
+| `solde_ach`                 | integer   | ❌          | Solde restant (montantTotal - montantPaye)  |
+| `client_idclient`           | integer   | ✅          | ID du client (foreign key)                  |
+| `utilisateur_idutilisateur` | integer   | ✅          | ID de l'utilisateur qui a fait la vente     |
+| `modalite_paiement_id_ach`  | integer   | ❌          | ID de la modalité de paiement (1 = Espèces) |
+| `date_creation_ach`         | timestamp | ✅          | Date/heure de création (auto)               |
+| `geler_ach`                 | integer   | ✅          | 0 = actif, 1 = gelé                         |
 
 ### 📝 Table `detail_achat_dac` (Les pesées)
 
 **Une ligne = Une pesée (un produit)**
 
-| Colonne | Type | Obligatoire | Description |
-|--------|------|------------|-------------|
-| `id_dac` | integer | ✅ | ID unique (auto-généré) |
-| `poids_dac` | integer | ✅ | Poids en kg |
-| `montant_dac` | integer | ✅ | Montant = poids × prix_kg |
-| `commande_idcommande` | integer | ✅ | ID de l'achat (foreign key) |
-| `poisson_idpoisson` | integer | ✅ | ID du produit (foreign key) |
-| `date_creation_dac` | timestamp | ✅ | Date/heure (auto) |
+| Colonne               | Type      | Obligatoire | Description                 |
+| --------------------- | --------- | ----------- | --------------------------- |
+| `id_dac`              | integer   | ✅          | ID unique (auto-généré)     |
+| `poids_dac`           | integer   | ✅          | Poids en kg                 |
+| `montant_dac`         | integer   | ✅          | Montant = poids × prix_kg   |
+| `commande_idcommande` | integer   | ✅          | ID de l'achat (foreign key) |
+| `poisson_idpoisson`   | integer   | ✅          | ID du produit (foreign key) |
+| `date_creation_dac`   | timestamp | ✅          | Date/heure (auto)           |
 
 ### 👤 Table `client_cli` (Les clients)
 
-| Colonne | Type | Obligatoire | Description |
-|--------|------|------------|-------------|
-| `id_cli` | integer | ✅ | ID unique (auto-généré) |
-| `nom_prenom_client_cli` | varchar(50) | ✅ | Nom et prénom |
-| `numero_client_cli` | varchar(15) | ❌ | Numéro de téléphone |
-| `type_client_idtype_client` | integer | ✅ | ID du type de client (foreign key) |
+| Colonne                     | Type        | Obligatoire | Description                        |
+| --------------------------- | ----------- | ----------- | ---------------------------------- |
+| `id_cli`                    | integer     | ✅          | ID unique (auto-généré)            |
+| `nom_prenom_client_cli`     | varchar(50) | ✅          | Nom et prénom                      |
+| `numero_client_cli`         | varchar(15) | ❌          | Numéro de téléphone                |
+| `type_client_idtype_client` | integer     | ✅          | ID du type de client (foreign key) |
 
 ### 🐟 Table `produit_pro` (Les produits/poissons)
 
-| Colonne | Type | Obligatoire | Description |
-|--------|------|------------|-------------|
-| `id_pro` | integer | ✅ | ID unique (auto-généré) |
-| `libelle_pro` | varchar(50) | ✅ | Nom du produit (ex: "Thon") |
-| `prix_kg_pro` | integer | ❌ | Prix au kilogramme |
+| Colonne                   | Type        | Obligatoire | Description                                      |
+| ------------------------- | ----------- | ----------- | ------------------------------------------------ |
+| `id_pro`                  | integer     | ✅          | ID unique (auto-généré)                          |
+| `libelle_pro`             | varchar(50) | ✅          | Nom du produit (ex: "Thon")                      |
+| `prix_kg_pro`             | integer     | ❌          | Prix au kilogramme (prix de base)                |
+| `prix_kg_1_tonne_pro`     | integer     | ❌          | Prix au kg si ≥ 1000 kg (réduction -250 FCFA/kg) |
+| `prix_kg_3_tonnes_pro`    | integer     | ❌          | Prix au kg si ≥ 3000 kg (réduction -500 FCFA/kg) |
+| `prix_kg_gros_client_pro` | integer     | ❌          | Prix au kg pour les gros clients (prix fixe)     |
 
 ### 👨‍💼 Table `utilisateur_uti` (Les utilisateurs)
 
-| Colonne | Type | Obligatoire | Description |
-|--------|------|------------|-------------|
-| `id_uti` | integer | ✅ | ID unique (auto-généré) |
-| `nom_utilisateur_uti` | varchar(50) | ✅ | Nom d'utilisateur |
+| Colonne               | Type        | Obligatoire | Description             |
+| --------------------- | ----------- | ----------- | ----------------------- |
+| `id_uti`              | integer     | ✅          | ID unique (auto-généré) |
+| `nom_utilisateur_uti` | varchar(50) | ✅          | Nom d'utilisateur       |
 
 ### 🏷️ Table `type_client_tyc` (Types de clients)
 
-| Colonne | Type | Obligatoire | Description |
-|--------|------|------------|-------------|
-| `id_tyc` | integer | ✅ | ID unique (auto-généré) |
-| `libelle_tyc` | varchar(50) | ✅ | Libellé (ex: "Particulier", "Restaurant") |
+| Colonne       | Type        | Obligatoire | Description                                  |
+| ------------- | ----------- | ----------- | -------------------------------------------- |
+| `id_tyc`      | integer     | ✅          | ID unique (auto-généré)                      |
+| `libelle_tyc` | varchar(50) | ✅          | Libellé (ex: "Client Normal", "Gros Client") |
+
+**IDs fixes :**
+
+- `id = 1` → Client Normal (réductions selon poids)
+- `id = 2` → Gros Client (prix fixe, pas de réduction)
+
+### 💳 Table `modalite_paiement_mop` (Modalités de paiement)
+
+| Colonne       | Type        | Obligatoire | Description                       |
+| ------------- | ----------- | ----------- | --------------------------------- |
+| `id_mop`      | integer     | ✅          | ID unique (auto-généré)           |
+| `libelle_mop` | varchar(50) | ✅          | Libellé (ex: "Espèces", "Chèque") |
+
+**IDs fixes :**
+
+- `id = 1` → Espèces (modalité par défaut)
 
 ---
 
@@ -141,14 +182,17 @@ Content-Type: application/json
   "clientNom": "Amadou Diallo",
   "clientNumero": "+221771234567",
   "clientTypeClient": 1,
+  "clientId": null,
   "utilisateurId": 1,
+  "montantPaye": 0,
+  "modalitePaiementId": 1,
   "details": [
     {
       "produitId": 1,
       "poids": 25
     },
     {
-      "produitId": 2,
+      "produitId": 1,
       "poids": 15
     }
   ]
@@ -159,22 +203,25 @@ Content-Type: application/json
 
 #### Champs obligatoires au niveau racine
 
-| Champ | Type | Obligatoire | Description | Exemple |
-|-------|------|------------|--------------|---------|
-| `clientNom` | string | ✅ | Nom et prénom du client | `"Amadou Diallo"` |
-| `clientNumero` | string | ✅ | Numéro de téléphone (unique) | `"+221771234567"` |
-| `clientTypeClient` | number | ✅ | ID du type de client | `1` |
-| `utilisateurId` | number | ✅ | ID de l'utilisateur qui fait la vente | `1` |
-| `details` | array | ✅ | Liste des produits achetés | `[{...}, {...}]` |
+| Champ                | Type   | Obligatoire | Description                                         | Exemple           |
+| -------------------- | ------ | ----------- | --------------------------------------------------- | ----------------- |
+| `clientNom`          | string | ⚠️          | Nom et prénom (obligatoire si Client Normal)        | `"Amadou Diallo"` |
+| `clientNumero`       | string | ⚠️          | Numéro de téléphone (obligatoire si Client Normal)  | `"+221771234567"` |
+| `clientTypeClient`   | number | ✅          | ID du type de client (1 = Normal, 2 = Gros Client)  | `1`               |
+| `clientId`           | number | ⚠️          | ID du client (obligatoire si Gros Client, id=2)     | `null` ou `15`    |
+| `utilisateurId`      | number | ✅          | ID de l'utilisateur qui fait la vente               | `1`               |
+| `montantPaye`        | number | ❌          | Montant payé par le client (défaut: 0)              | `0` ou `50000`    |
+| `modalitePaiementId` | number | ❌          | ID de la modalité de paiement (défaut: 1 = Espèces) | `1`               |
+| `details`            | array  | ✅          | Liste des pesées (toutes pour le même produit)      | `[{...}, {...}]`  |
 
 #### Champs dans `details` (array)
 
-| Champ | Type | Obligatoire | Description | Exemple |
-|-------|------|------------|-------------|---------|
-| `produitId` | number | ✅ | ID du produit (doit exister en base) | `1` |
-| `poids` | number | ✅ | Poids en kg (entier) | `25` |
+| Champ       | Type   | Obligatoire | Description                          | Exemple |
+| ----------- | ------ | ----------- | ------------------------------------ | ------- |
+| `produitId` | number | ✅          | ID du produit (doit exister en base) | `1`     |
+| `poids`     | number | ✅          | Poids en kg (entier)                 | `25`    |
 
-### ✅ Exemple complet - Vente simple (1 produit)
+### ✅ Exemple complet - Client Normal (1 pesée)
 
 ```json
 {
@@ -182,6 +229,8 @@ Content-Type: application/json
   "clientNumero": "+221771111111",
   "clientTypeClient": 1,
   "utilisateurId": 1,
+  "montantPaye": 0,
+  "modalitePaiementId": 1,
   "details": [
     {
       "produitId": 1,
@@ -191,30 +240,58 @@ Content-Type: application/json
 }
 ```
 
-### ✅ Exemple complet - Vente multiple (3 produits)
+### ✅ Exemple complet - Client Normal (3 pesées, total ≥ 1000 kg)
 
 ```json
 {
   "clientNom": "Ibrahima Ba",
   "clientNumero": "+221772222222",
-  "clientTypeClient": 2,
+  "clientTypeClient": 1,
   "utilisateurId": 1,
+  "montantPaye": 2000000,
+  "modalitePaiementId": 1,
   "details": [
     {
       "produitId": 1,
-      "poids": 25
+      "poids": 500
     },
     {
-      "produitId": 2,
-      "poids": 15
+      "produitId": 1,
+      "poids": 400
     },
     {
-      "produitId": 3,
-      "poids": 10
+      "produitId": 1,
+      "poids": 200
     }
   ]
 }
 ```
+
+**Note :** Total = 1100 kg → Réduction appliquée (prixKg1Tonne)
+
+### ✅ Exemple complet - Gros Client (prix fixe)
+
+```json
+{
+  "clientId": 15,
+  "clientTypeClient": 2,
+  "utilisateurId": 1,
+  "montantPaye": 5000000,
+  "modalitePaiementId": 1,
+  "details": [
+    {
+      "produitId": 1,
+      "poids": 2000
+    },
+    {
+      "produitId": 1,
+      "poids": 1500
+    }
+  ]
+}
+```
+
+**Note :** Gros Client → Pas besoin de `clientNom` ni `clientNumero`, prix fixe appliqué
 
 ### 📥 Réponse en cas de succès
 
@@ -230,6 +307,8 @@ Content-Type: application/json
       "numero": "+221771234567"
     },
     "montantTotal": 72500,
+    "montantPaye": 0,
+    "solde": 72500,
     "nombrePesees": 2,
     "details": [
       {
@@ -254,15 +333,19 @@ Content-Type: application/json
 **Avant de tester, vous devez avoir en base :**
 
 1. **Au moins 1 utilisateur** :
+
    ```sql
    SELECT id_uti, nom_utilisateur_uti FROM utilisateur_uti;
    ```
+
    → Utilisez un `id_uti` existant pour `utilisateurId`
 
 2. **Au moins 1 type de client** :
+
    ```sql
    SELECT id_tyc, libelle_tyc FROM type_client_tyc;
    ```
+
    → Utilisez un `id_tyc` existant pour `clientTypeClient`
 
 3. **Au moins 1 produit** :
@@ -278,7 +361,7 @@ Content-Type: application/json
 ```typescript
 // Le service cherche si le client existe déjà (par numéro)
 let client = await entityManager.findOne(ClientEntity, {
-  where: { numero: venteData.clientNumero }
+  where: { numero: venteData.clientNumero },
 });
 
 // Si pas trouvé → création automatique
@@ -287,66 +370,115 @@ if (!client) {
   client = entityManager.create(ClientEntity, {
     nomPrenom: venteData.clientNom,
     numero: venteData.clientNumero,
-    typeClient: typeClient,  // Chargé depuis la base
+    typeClient: typeClient, // Chargé depuis la base
     // ...
   });
 }
 ```
 
 **Ce que ça signifie pour vous** :
+
 - Si vous envoyez un numéro qui existe déjà → Le client existant est utilisé
 - Si vous envoyez un nouveau numéro → Un nouveau client est créé automatiquement
 
-#### ÉTAPE 2 : Calcul du montant total
+#### ÉTAPE 2 : Calcul du poids total
 
 ```typescript
-let montantTotal = 0;
+let poidsTotal = 0;
 for (const element of venteData.details) {
-  // Charger le produit pour obtenir son prixKg
-  const produit = await entityManager.findOne(ProduitEntity, {
-    where: { id: element.produitId }
-  });
-  
-  // Calculer : montant = poids × prixKg
-  const prixKg = produit.prixKg || 0;
-  montantTotal += element.poids * prixKg;
+  poidsTotal += element.poids; // Additionner tous les poids
 }
 ```
 
 **Ce que ça signifie pour vous** :
-- **Vous n'envoyez PAS le prix** dans le body
-- Le prix est récupéré automatiquement depuis la table `produit_pro`
-- Le calcul est fait automatiquement : `poids × prix_kg_pro`
 
-#### ÉTAPE 3 : Création de l'achat (vente globale)
+- Toutes les pesées sont additionnées pour obtenir le poids total
+- Exemple : 500 kg + 600 kg + 200 kg = 1300 kg
+
+#### ÉTAPE 3 : Calcul du prix au kg selon le type de client
+
+```typescript
+if (isGrosClient) {
+  // Gros client : prix fixe (pas de réduction)
+  prixKg = produit.prixKgGrosClient;
+} else {
+  // Client normal : prix selon poids total
+  if (poidsTotal >= 3000) {
+    prixKg = produit.prixKg3Tonnes; // Réduction -500 FCFA/kg
+  } else if (poidsTotal >= 1000) {
+    prixKg = produit.prixKg1Tonne; // Réduction -250 FCFA/kg
+  } else {
+    prixKg = produit.prixKg; // Prix de base
+  }
+}
+```
+
+**Ce que ça signifie pour vous** :
+
+- **Gros Client (id=2)** : Prix fixe `prixKgGrosClient`, pas de réduction
+- **Client Normal (id=1)** : Prix selon poids total
+  - ≥ 3000 kg → `prixKg3Tonnes` (réduction -500 FCFA/kg)
+  - ≥ 1000 kg → `prixKg1Tonne` (réduction -250 FCFA/kg)
+  - < 1000 kg → `prixKg` (prix de base)
+
+#### ÉTAPE 4 : Calcul du montant total
+
+```typescript
+const montantTotal = poidsTotal * prixKg;
+```
+
+**Ce que ça signifie pour vous** :
+
+- **Vous n'envoyez PAS le prix** dans le body
+- Le prix est calculé automatiquement selon le type de client et le poids total
+- Le calcul est fait automatiquement : `poids total × prix au kg calculé`
+
+#### ÉTAPE 5 : Gestion du paiement
+
+```typescript
+const montantPaye = venteData.montantPaye || 0;
+const solde = montantTotal - montantPaye;
+
+const modalitePaiement = await entityManager.findOne(ModalitePaiementEntity, {
+  where: { id: venteData.modalitePaiementId || 1 }, // 1 = Espèces par défaut
+});
+```
+
+**Ce que ça signifie pour vous** :
+
+- `montantPaye` : Montant payé par le client (défaut: 0)
+- `solde` : Calculé automatiquement = `montantTotal - montantPaye`
+- `modalitePaiementId` : ID de la modalité (défaut: 1 = Espèces)
+
+#### ÉTAPE 6 : Création de l'achat (vente globale)
 
 ```typescript
 const achat = entityManager.create(AchatEntity, {
   client: client,
   utilisateur: utilisateur,
-  montantTotal: montantTotal,  // Calculé automatiquement
+  montantTotal: montantTotal, // Calculé automatiquement
   geler: 0,
   dateCreation: new Date(),
   // ...
 });
 ```
 
-#### ÉTAPE 4 : Création des détails (pesées)
+#### ÉTAPE 7 : Création des détails (pesées)
 
 ```typescript
 for (const element of venteData.details) {
   const produit = await entityManager.findOne(ProduitEntity, {
-    where: { id: element.produitId }
+    where: { id: element.produitId },
   });
-  
+
   const prixKg = produit.prixKg || 0;
-  const montant = element.poids * prixKg;  // Calcul automatique
-  
+  const montant = element.poids * prixKg; // Calcul automatique
+
   const detail = entityManager.create(DetailAchatEntity, {
     achat: achatSauvegarde,
     produit: produit,
     poids: element.poids,
-    montant: montant,  // Calculé automatiquement
+    montant: montant, // Calculé automatiquement
     // ...
   });
 }
@@ -378,13 +510,14 @@ Content-Type: application/json
 
 ### 🔍 Explication des champs
 
-| Champ | Type | Obligatoire | Format | Description |
-|-------|------|------------|--------|-------------|
-| `dateJour` | string | ✅ | `YYYY-MM-DD` | Date au format ISO | 
+| Champ      | Type   | Obligatoire | Format       | Description        |
+| ---------- | ------ | ----------- | ------------ | ------------------ |
+| `dateJour` | string | ✅          | `YYYY-MM-DD` | Date au format ISO |
 
 ### ✅ Exemples
 
 **Exemple 1 : Ventes du 15 janvier 2024**
+
 ```json
 {
   "dateJour": "2024-01-15"
@@ -392,6 +525,7 @@ Content-Type: application/json
 ```
 
 **Exemple 2 : Ventes d'aujourd'hui**
+
 ```json
 {
   "dateJour": "2024-12-20"
@@ -459,13 +593,92 @@ AND TO_DAYS(date_creation_ach) = TO_DAYS('2024-01-15')
 ```
 
 **Ce que ça signifie** :
+
 - On cherche toutes les ventes non gelées (`geler = 0`)
 - Créées le jour spécifié (peu importe l'heure)
 - On charge aussi les relations : client, typeClient, utilisateur, détails, produits
 
 ---
 
-## Endpoint 3 : Ventes par mois
+## Endpoint 3 : Ventes par semaine
+
+### 📍 URL
+
+```
+POST http://localhost:3000/metier/vente/venteParSemaine
+```
+
+### 📤 Headers
+
+```
+Content-Type: application/json
+```
+
+### 📋 Body JSON
+
+```json
+{
+  "date": "2024-01-15"
+}
+```
+
+### 🔍 Explication des champs
+
+| Champ  | Type   | Obligatoire | Format       | Description                                                        |
+| ------ | ------ | ----------- | ------------ | ------------------------------------------------------------------ |
+| `date` | string | ✅          | `YYYY-MM-DD` | Date au format ISO (le backend calcule automatiquement la semaine) |
+
+### ✅ Exemples
+
+**Exemple 1 : Ventes de la semaine contenant le 15 janvier 2024**
+
+```json
+{
+  "date": "2024-01-15"
+}
+```
+
+**Exemple 2 : Ventes de la semaine contenant aujourd'hui**
+
+```json
+{
+  "date": "2024-12-20"
+}
+```
+
+### 📥 Réponse
+
+Même format que `venteParJour` (tableau d'achats avec toutes les relations)
+
+**Si aucune vente** : Retourne un tableau vide `[]`
+
+### 🔄 Logique métier
+
+```typescript
+// Requête SQL générée (simplifiée)
+SELECT * FROM achat_ach
+WHERE geler_ach = 0
+AND WEEK(date_creation_ach, 1) = WEEK('2024-01-15', 1)
+AND YEAR(date_creation_ach) = YEAR('2024-01-15')
+```
+
+**Ce que ça signifie** :
+
+- Le backend calcule automatiquement le numéro de semaine à partir de la date fournie
+- Mode 1 = ISO standard (semaine commence le lundi)
+- On cherche toutes les ventes non gelées (`geler = 0`)
+- Créées dans la même semaine ISO que la date fournie
+- On charge aussi les relations : client, typeClient, utilisateur, détails, produits
+
+**Note importante** : La fonction `WEEK()` de MySQL utilise le mode 1 (ISO standard) :
+
+- Semaine commence le lundi
+- La première semaine de l'année est celle qui contient le 4 janvier
+- Les semaines sont numérotées de 1 à 53
+
+---
+
+## Endpoint 4 : Ventes par mois
 
 ### 📍 URL
 
@@ -490,14 +703,15 @@ Content-Type: application/json
 
 ### 🔍 Explication des champs
 
-| Champ | Type | Obligatoire | Format | Description |
-|-------|------|------------|--------|-------------|
-| `mois` | string | ✅ | `"1"` à `"12"` | Mois (1 = janvier, 12 = décembre) |
-| `annee` | string | ✅ | `"2024"` | Année (4 chiffres) |
+| Champ   | Type   | Obligatoire | Format         | Description                       |
+| ------- | ------ | ----------- | -------------- | --------------------------------- |
+| `mois`  | string | ✅          | `"1"` à `"12"` | Mois (1 = janvier, 12 = décembre) |
+| `annee` | string | ✅          | `"2024"`       | Année (4 chiffres)                |
 
 ### ✅ Exemples
 
 **Exemple 1 : Ventes de janvier 2024**
+
 ```json
 {
   "mois": "1",
@@ -506,6 +720,7 @@ Content-Type: application/json
 ```
 
 **Exemple 2 : Ventes de décembre 2024**
+
 ```json
 {
   "mois": "12",
@@ -531,7 +746,7 @@ AND YEAR(date_creation_ach) = 2024
 
 ---
 
-## Endpoint 4 : Ventes par année
+## Endpoint 5 : Ventes par année
 
 ### 📍 URL
 
@@ -555,13 +770,14 @@ Content-Type: application/json
 
 ### 🔍 Explication des champs
 
-| Champ | Type | Obligatoire | Format | Description |
-|-------|------|------------|--------|-------------|
-| `annee` | string | ✅ | `"2024"` | Année (4 chiffres) |
+| Champ   | Type   | Obligatoire | Format   | Description        |
+| ------- | ------ | ----------- | -------- | ------------------ |
+| `annee` | string | ✅          | `"2024"` | Année (4 chiffres) |
 
 ### ✅ Exemples
 
 **Exemple 1 : Ventes de 2024**
+
 ```json
 {
   "annee": "2024"
@@ -569,6 +785,7 @@ Content-Type: application/json
 ```
 
 **Exemple 2 : Ventes de 2023**
+
 ```json
 {
   "annee": "2023"
@@ -595,6 +812,7 @@ AND YEAR(date_creation_ach) = 2024
 ### ❌ Erreur 1 : `produitId` n'existe pas
 
 **Erreur** :
+
 ```json
 {
   "statusCode": 500,
@@ -605,6 +823,7 @@ AND YEAR(date_creation_ach) = 2024
 **Cause** : Vous avez envoyé un `produitId` qui n'existe pas en base.
 
 **Solution** :
+
 1. Vérifiez que le produit existe :
    ```sql
    SELECT id_pro, libelle_pro FROM produit_pro WHERE id_pro = 1;
@@ -616,6 +835,7 @@ AND YEAR(date_creation_ach) = 2024
 ### ❌ Erreur 2 : `utilisateurId` n'existe pas
 
 **Erreur** :
+
 ```json
 {
   "statusCode": 500,
@@ -626,6 +846,7 @@ AND YEAR(date_creation_ach) = 2024
 **Cause** : Vous avez envoyé un `utilisateurId` qui n'existe pas.
 
 **Solution** :
+
 1. Vérifiez que l'utilisateur existe :
    ```sql
    SELECT id_uti, nom_utilisateur_uti FROM utilisateur_uti WHERE id_uti = 1;
@@ -637,6 +858,7 @@ AND YEAR(date_creation_ach) = 2024
 ### ❌ Erreur 3 : `clientTypeClient` n'existe pas
 
 **Erreur** :
+
 ```json
 {
   "statusCode": 500,
@@ -647,6 +869,7 @@ AND YEAR(date_creation_ach) = 2024
 **Cause** : Vous avez envoyé un `clientTypeClient` qui n'existe pas.
 
 **Solution** :
+
 1. Vérifiez que le type de client existe :
    ```sql
    SELECT id_tyc, libelle_tyc FROM type_client_tyc WHERE id_tyc = 1;
@@ -662,6 +885,7 @@ AND YEAR(date_creation_ach) = 2024
 **Cause** : Format de date incorrect dans `venteParJour`.
 
 **Solution** :
+
 - ✅ Bon format : `"2024-01-15"`
 - ❌ Mauvais format : `"15/01/2024"` ou `"2024-1-15"`
 
@@ -670,6 +894,7 @@ AND YEAR(date_creation_ach) = 2024
 ### ❌ Erreur 5 : `details` est vide
 
 **Erreur** :
+
 ```json
 {
   "statusCode": 500,
@@ -680,6 +905,7 @@ AND YEAR(date_creation_ach) = 2024
 **Cause** : Vous n'avez pas envoyé le champ `details` ou il est vide.
 
 **Solution** :
+
 - Toujours envoyer `details` avec au moins un élément :
   ```json
   {
@@ -701,10 +927,11 @@ AND YEAR(date_creation_ach) = 2024
 **Cause** : Vous avez envoyé `poids: 0` ou `poids: -5`.
 
 **Solution** :
+
 - Toujours envoyer un poids positif :
   ```json
   {
-    "poids": 25  // ✅ Positif
+    "poids": 25 // ✅ Positif
   }
   ```
 
@@ -717,6 +944,7 @@ AND YEAR(date_creation_ach) = 2024
 **Cause** : Le produit existe mais n'a pas de `prix_kg_pro` défini.
 
 **Solution** :
+
 1. Vérifiez le prix du produit :
    ```sql
    SELECT id_pro, libelle_pro, prix_kg_pro FROM produit_pro WHERE id_pro = 1;
@@ -757,6 +985,7 @@ async creerVente(@Body() venteData: any) {
 ```
 
 **Ce qui se passe** :
+
 - NestJS parse automatiquement le JSON du body
 - Le `@Body()` decorator extrait les données
 - Les données sont passées au service
@@ -772,10 +1001,12 @@ async creerVente(venteData: any) {
 ```
 
 **Pourquoi une transaction ?**
+
 - Si une erreur survient, **tout est annulé** (rollback)
 - Garantit la cohérence : soit tout est créé, soit rien
 
 **Exemple** :
+
 - Si la création de l'achat réussit mais qu'une erreur survient lors de la création des détails
 - → L'achat est automatiquement supprimé (rollback)
 
@@ -784,14 +1015,15 @@ async creerVente(venteData: any) {
 ```typescript
 // Chercher un client
 let client = await entityManager.findOne(ClientEntity, {
-  where: { numero: venteData.clientNumero }
+  where: { numero: venteData.clientNumero },
 });
 ```
 
 **Requête SQL générée** :
+
 ```sql
-SELECT * FROM client_cli 
-WHERE numero_client_cli = '+221771234567' 
+SELECT * FROM client_cli
+WHERE numero_client_cli = '+221771234567'
 LIMIT 1;
 ```
 
@@ -811,10 +1043,11 @@ const achatSauvegarde = await entityManager.save(AchatEntity, achat);
 ```
 
 **Requête SQL générée** :
+
 ```sql
-INSERT INTO achat_ach 
+INSERT INTO achat_ach
   (montant_total_ach, client_idclient, utilisateur_idutilisateur, date_creation_ach, geler_ach, idusrcreation_ach)
-VALUES 
+VALUES
   (72500, 15, 1, '2024-01-15 10:30:00', 0, 1);
 ```
 
@@ -835,6 +1068,7 @@ CLIENT (1)
 ```
 
 **Légende** :
+
 - `(1)` = Un seul
 - `(N)` = Plusieurs
 
@@ -843,20 +1077,21 @@ CLIENT (1)
 ```typescript
 // ❌ On ne peut pas faire ça
 const achat = entityManager.create(AchatEntity, {
-  client: 15,  // ❌ Erreur : TypeORM attend un objet ClientEntity
+  client: 15, // ❌ Erreur : TypeORM attend un objet ClientEntity
 });
 
 // ✅ On doit faire ça
 const client = await entityManager.findOne(ClientEntity, {
-  where: { id: 15 }
+  where: { id: 15 },
 });
 
 const achat = entityManager.create(AchatEntity, {
-  client: client,  // ✅ Objet complet
+  client: client, // ✅ Objet complet
 });
 ```
 
 **Raison** :
+
 - TypeORM utilise les **relations** (foreign keys)
 - Il a besoin de l'objet complet pour gérer les relations
 - C'est pour ça qu'on charge d'abord le client, l'utilisateur, le produit
@@ -868,21 +1103,25 @@ const achat = entityManager.create(AchatEntity, {
 Avant de tester avec Postman, vérifiez que vous avez :
 
 - [ ] **Au moins 1 utilisateur** en base
+
   ```sql
   SELECT id_uti FROM utilisateur_uti LIMIT 1;
   ```
 
 - [ ] **Au moins 1 type de client** en base
+
   ```sql
   SELECT id_tyc FROM type_client_tyc LIMIT 1;
   ```
 
 - [ ] **Au moins 1 produit** avec un prix défini
+
   ```sql
   SELECT id_pro, libelle_pro, prix_kg_pro FROM produit_pro WHERE prix_kg_pro IS NOT NULL LIMIT 1;
   ```
 
 - [ ] **Le serveur NestJS est démarré**
+
   ```bash
   npm run start:dev
   ```
@@ -900,19 +1139,23 @@ Avant de tester avec Postman, vérifiez que vous avez :
 ### Ce que vous devez comprendre
 
 1. **Une vente = 1 achat + plusieurs détails**
+
    - L'achat = la vente globale
    - Les détails = les pesées individuelles
 
 2. **Vous n'envoyez PAS le prix**
+
    - Le prix est récupéré automatiquement depuis la table `produit_pro`
    - Le calcul est fait automatiquement : `poids × prix_kg`
 
 3. **Les IDs doivent exister en base**
+
    - `utilisateurId` → doit exister dans `utilisateur_uti`
    - `clientTypeClient` → doit exister dans `type_client_tyc`
    - `produitId` → doit exister dans `produit_pro`
 
 4. **Le client est créé automatiquement**
+
    - Si le numéro n'existe pas → nouveau client créé
    - Si le numéro existe → client existant utilisé
 
@@ -924,10 +1167,13 @@ Avant de tester avec Postman, vérifiez que vous avez :
 
 ```json
 {
-  "clientNom": "string",
-  "clientNumero": "string",
-  "clientTypeClient": number,
+  "clientNom": "string (si Client Normal)",
+  "clientNumero": "string (si Client Normal)",
+  "clientId": "number (si Gros Client)",
+  "clientTypeClient": "number (1 = Normal, 2 = Gros Client)",
   "utilisateurId": number,
+  "montantPaye": "number (optionnel, défaut: 0)",
+  "modalitePaiementId": "number (optionnel, défaut: 1 = Espèces)",
   "details": [
     {
       "produitId": number,
@@ -949,4 +1195,3 @@ Avant de tester avec Postman, vérifiez que vous avez :
 ---
 
 **Bon courage ! 🎉**
-

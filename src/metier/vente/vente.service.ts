@@ -23,13 +23,9 @@ export class VenteMetierService {
       // ============================================
       // ÉTAPE 1 : DÉTERMINER LE TYPE DE CLIENT
       // ============================================
-      // Charger le type "Gros Client" pour comparaison
-      const typeGrosClient = await entityManager.findOne(TypeClientEntity, {
-        where: { libelle: 'Gros Client' }
-      });
-
-      // Vérifier si le type client sélectionné est "Gros Client"
-      const isGrosClient = typeGrosClient && (venteData.clientTypeClient === typeGrosClient.id);
+      // IDs fixes : id=1 = Client Normal, id=2 = Gros Client
+      const GROS_CLIENT_ID = 2;
+      const isGrosClient = venteData.clientTypeClient === GROS_CLIENT_ID;
 
       // ============================================
       // ÉTAPE 2 : OBTENIR LE CLIENT
@@ -112,18 +108,18 @@ export class VenteMetierService {
 
       if (isGrosClient) {
         // Gros client : prix fixe (pas de réduction)
-        prixKg = produit.prixKgGrosClient || produit.prixKg || 0;
+        prixKg = produit.prixKgGrosClient;
       } else {
         // Client normal : prix selon poids total
         if (poidsTotal >= 3000) {
           // 3 tonnes ou plus
-          prixKg = produit.prixKg3Tonnes || produit.prixKg || 0;
+          prixKg = produit.prixKg3Tonnes;
         } else if (poidsTotal >= 1000) {
           // 1 tonne ou plus
-          prixKg = produit.prixKg1Tonne || produit.prixKg || 0;
+          prixKg = produit.prixKg1Tonne;
         } else {
           // Moins de 1 tonne : prix de base
-          prixKg = produit.prixKg || 0;
+          prixKg = produit.prixKg;
         }
       }
 
@@ -139,9 +135,10 @@ export class VenteMetierService {
       const montantPaye = venteData.montantPaye || 0;
       const solde = montantTotal - montantPaye;
 
-      // Charger la modalité de paiement "Espèces"
+      // Charger la modalité de paiement par ID fixe (id=1 = Espèces)
+    
       const modalitePaiement = await entityManager.findOne(ModalitePaiementEntity, {
-        where: { libelle: 'Espèces' }
+        where: { id: venteData.modalitePaiementId }
       });
 
       // ============================================
@@ -327,9 +324,50 @@ export class VenteMetierService {
     });
 
     return resultatsAvecPesees;
+  }
 
+  async venteParSemaine(query: any) {
+    const manager = getManager();
+    const { date } = query;
 
+    // Convertir la date en objet Date
+    const dateObj = new Date(date);
+    const annee = dateObj.getFullYear();
+    
+    // Calculer le numéro de semaine ISO (semaine commence le lundi)
+    // Utiliser MySQL WEEK() avec mode 1 (ISO standard)
+    const ventesDeLaSemaine = await manager.createQueryBuilder(AchatEntity, 'achat')
+      .select([
+        "achat",
+        "client",
+        "typeClient",
+        "detailAchat",
+        "produit",
+        "utilisateur"
+      ])
+      .leftJoin("achat.utilisateur", "utilisateur")
+      .leftJoin("achat.client", "client")
+      .leftJoin("client.typeClient", "typeClient")
+      .leftJoin("achat.detailsAchat", "detailAchat")
+      .leftJoin("detailAchat.produit", "produit")
+      .where('achat.geler = 0')
+      .andWhere('WEEK(achat.dateCreation, 1) = WEEK(:date, 1)', { date: date })
+      .andWhere('YEAR(achat.dateCreation) = YEAR(:date)', { date: date })
+      .getMany();
 
+    // Ajouter le nombre de pesées pour chaque vente
+    const resultatsAvecPesees = ventesDeLaSemaine.map(achat => {
+      // Compter le nombre de pesées (détails d'achat)
+      const nombrePesees = achat.detailsAchat?.length || 0;
+
+      // Retourner l'achat avec la propriété nombrePesees ajoutée
+      return {
+        ...achat,
+        nombrePesees: nombrePesees
+      };
+    });
+
+    return resultatsAvecPesees;
   }
   
 }

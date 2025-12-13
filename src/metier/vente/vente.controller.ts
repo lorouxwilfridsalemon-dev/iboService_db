@@ -34,5 +34,10 @@ export class VenteMetierController {
   async venteParAnnee(@Body() query: any) {
     return await this.venteMetierService.venteParAnnee(query);
   }
+
+  @Post('venteParSemaine')
+  async venteParSemaine(@Body() query: any) {
+    return await this.venteMetierService.venteParSemaine(query);
+  }
  }
 
