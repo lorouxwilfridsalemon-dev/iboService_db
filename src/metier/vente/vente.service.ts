@@ -6,7 +6,7 @@ import { ClientEntity } from '../../database/client/client.entity';
 import { ProduitEntity } from '../../database/produit/produit.entity';
 import { UtilisateurEntity } from '../../database/utilisateur/utilisateur.entity';
 import { TypeClientEntity } from '../../database/type_client/type_client.entity';
-import { get } from 'http';
+import { ModalitePaiementEntity } from '../../database/modalite_paiement/modalite_paiement.entity';
 
 
 @Injectable()
@@ -19,61 +19,143 @@ export class VenteMetierService {
 
   async creerVente(venteData: any) {
     return await this.entityManager.transaction(async (entityManager) => {
-      // ÉTAPE 1 : Gérer le client
-      // Chercher si le client existe déjà (par numéro)
-      let client = await entityManager.findOne(ClientEntity, {
-        where: { numero: venteData.clientNumero }
+      
+      // ============================================
+      // ÉTAPE 1 : DÉTERMINER LE TYPE DE CLIENT
+      // ============================================
+      // Charger le type "Gros Client" pour comparaison
+      const typeGrosClient = await entityManager.findOne(TypeClientEntity, {
+        where: { libelle: 'Gros Client' }
       });
 
-      // Si pas trouvé → créer un nouveau client
-      if (!client) {
-        console.log(`Nouveau client: ${venteData.clientNom}`);
+      // Vérifier si le type client sélectionné est "Gros Client"
+      const isGrosClient = typeGrosClient && (venteData.clientTypeClient === typeGrosClient.id);
 
-        // Charger le type de client
-        const typeClient = await entityManager.findOne(TypeClientEntity, {
-          where: { id: venteData.clientTypeClient }
+      // ============================================
+      // ÉTAPE 2 : OBTENIR LE CLIENT
+      // ============================================
+      let client: ClientEntity;
+
+      if (isGrosClient) {
+        // Gros client : charger par ID (client déjà sélectionné dans la liste)
+        client = await entityManager.findOne(ClientEntity, {
+          where: { id: venteData.clientId }
         });
 
-        // Créer le client
-        client = entityManager.create(ClientEntity, {
-          nomPrenom: venteData.clientNom,
-          numero: venteData.clientNumero,
-          typeClient: typeClient,
-          geler: 0,
-          dateCreation: new Date(),
-          idusrcreation: venteData.utilisateurId
-        });
-
-        client = await entityManager.save(ClientEntity, client);
+        if (!client) {
+          throw new Error('Client gros client introuvable');
+        }
+        console.log(`Gros client sélectionné: ${client.nomPrenom}`);
       } else {
-        console.log(`Client existant: ${client.nomPrenom}`);
+        // Client normal : chercher par numéro ou créer
+        client = await entityManager.findOne(ClientEntity, {
+          where: { numero: venteData.clientNumero }
+        });
+
+        if (!client) {
+          console.log(`Nouveau client normal: ${venteData.clientNom}`);
+
+          // Charger le type de client normal
+          const typeClientNormal = await entityManager.findOne(TypeClientEntity, {
+            where: { id: venteData.clientTypeClient }
+          });
+
+          // Créer le client
+          client = entityManager.create(ClientEntity, {
+            nomPrenom: venteData.clientNom,
+            numero: venteData.clientNumero,
+            typeClient: typeClientNormal,
+            geler: 0,
+            dateCreation: new Date(),
+            idusrcreation: venteData.utilisateurId
+          });
+
+          client = await entityManager.save(ClientEntity, client);
+        } else {
+          console.log(`Client normal existant: ${client.nomPrenom}`);
+        }
       }
-      // ÉTAPE 2 : Charger utilisateur
+
+      // ============================================
+      // ÉTAPE 3 : CHARGER L'UTILISATEUR
+      // ============================================
       const utilisateur = await entityManager.findOne(UtilisateurEntity, {
         where: { id: venteData.utilisateurId }
       });
 
-      // ÉTAPE 3 : Calculer le montant total
-      // On doit d'abord charger les produits pour obtenir leurs prixKg
-      let montantTotal = 0;
-      for (const element of venteData.details) {
-        // Charger le produit pour obtenir son prixKg
-        const produit = await entityManager.findOne(ProduitEntity, {
-          where: { id: element.produitId }
-        });
-        // Utiliser le prixKg du produit depuis la base de données
-        const prixKg = produit.prixKg || 0; // Si prixKg est null, utiliser 0
-        montantTotal += element.poids * prixKg;
+      // ============================================
+      // ÉTAPE 4 : CHARGER LE PRODUIT (THON)
+      // ============================================
+      // Puisqu'il n'y a qu'un seul produit (thon), on le charge une seule fois
+      const produit = await entityManager.findOne(ProduitEntity, {
+        where: { id: venteData.details[0].produitId }
+      });
+
+      if (!produit) {
+        throw new Error('Produit introuvable');
       }
 
-      // ÉTAPE 4 : Créer l'achat
+      // ============================================
+      // ÉTAPE 5 : CALCULER LE POIDS TOTAL
+      // ============================================
+      // Additionner tous les poids de toutes les pesées
+      let poidsTotal = 0;
+      for (const element of venteData.details) {
+        poidsTotal += element.poids;
+      }
+      // Exemple : 500 + 600 + 200 = 1300 kg
 
+      // ============================================
+      // ÉTAPE 6 : CALCULER LE PRIX AU KG
+      // ============================================
+      let prixKg = 0;
+
+      if (isGrosClient) {
+        // Gros client : prix fixe (pas de réduction)
+        prixKg = produit.prixKgGrosClient || produit.prixKg || 0;
+      } else {
+        // Client normal : prix selon poids total
+        if (poidsTotal >= 3000) {
+          // 3 tonnes ou plus
+          prixKg = produit.prixKg3Tonnes || produit.prixKg || 0;
+        } else if (poidsTotal >= 1000) {
+          // 1 tonne ou plus
+          prixKg = produit.prixKg1Tonne || produit.prixKg || 0;
+        } else {
+          // Moins de 1 tonne : prix de base
+          prixKg = produit.prixKg || 0;
+        }
+      }
+
+      // ============================================
+      // ÉTAPE 7 : CALCULER LE MONTANT TOTAL
+      // ============================================
+      const montantTotal = poidsTotal * prixKg;
+      // Exemple : 1300 kg × 2750 FCFA/kg = 3 575 000 FCFA
+
+      // ============================================
+      // ÉTAPE 8 : GÉRER LE PAIEMENT
+      // ============================================
+      const montantPaye = venteData.montantPaye || 0;
+      const solde = montantTotal - montantPaye;
+
+      // Charger la modalité de paiement "Espèces"
+      const modalitePaiement = await entityManager.findOne(ModalitePaiementEntity, {
+        where: { libelle: 'Espèces' }
+      });
+
+      // ============================================
+      // ÉTAPE 9 : CRÉER L'ACHAT
+      // ============================================
       const now = new Date();
 
       const achat = entityManager.create(AchatEntity, {
         client: client,
         utilisateur: utilisateur,
         montantTotal: montantTotal,
+        montantPaye: montantPaye,
+        solde: solde,
+        modalitePaiement: modalitePaiement,
         geler: 0,
         dateCreation: now,
         idusrcreation: utilisateur.id
@@ -81,27 +163,18 @@ export class VenteMetierService {
 
       const achatSauvegarde = await entityManager.save(AchatEntity, achat);
 
-      // ÉTAPE 5 : Créer les détails
-
+      // ============================================
+      // ÉTAPE 10 : CRÉER LES DÉTAILS (PESÉES)
+      // ============================================
       const detailsCrees = [];
 
       for (const element of venteData.details) {
-        // Charger le produit pour obtenir son prixKg
-        const produit = await entityManager.findOne(ProduitEntity, {
-          where: { id: element.produitId }
-        });
-
-        // Utiliser le prixKg du produit depuis la base de données
-        const prixKg = produit.prixKg || 0; // Si prixKg est null, utiliser 0
-
-        // Calculer le montant (poids × prixKg du produit)
+        // Toutes les pesées utilisent le même prixKg calculé
         const montant = element.poids * prixKg;
 
-        // Créer le détail
-        // Note: prixKg n'est plus stocké dans DetailAchatEntity, il est dans ProduitEntity
         const detail = entityManager.create(DetailAchatEntity, {
           achat: achatSauvegarde,
-          produit: produit,
+          produit: produit,  // Même produit (thon) pour toutes les pesées
           poids: element.poids,
           montant: montant,
           dateCreation: now
@@ -112,12 +185,14 @@ export class VenteMetierService {
         detailsCrees.push({
           produit: produit.libelle,
           poids: detailSauvegarde.poids,
-          prixKg: prixKg, // Prix utilisé (depuis le produit)
+          prixKg: prixKg,
           montant: detailSauvegarde.montant
         });
       }
 
-      // ÉTAPE 6 : Retourner le résultat      
+      // ============================================
+      // ÉTAPE 11 : RETOURNER LE RÉSULTAT
+      // ============================================
       return {
         success: true,
         message: 'Vente créée avec succès',
@@ -129,6 +204,8 @@ export class VenteMetierService {
             numero: client.numero
           },
           montantTotal: achatSauvegarde.montantTotal,
+          montantPaye: achatSauvegarde.montantPaye,
+          solde: achatSauvegarde.solde,
           nombrePesees: detailsCrees.length,
           details: detailsCrees
         }
@@ -176,8 +253,8 @@ export class VenteMetierService {
     const manager = getManager();
     const { mois, annee } = query;
 
-    const moisInt = parseInt(mois, 10);
-    const anneeInt = parseInt(annee, 10);
+    const moisInt = parseInt(mois);
+    const anneeInt = parseInt(annee);
 
     const ventesDuMois = await manager.createQueryBuilder(AchatEntity, 'achat')
       .select([
@@ -217,7 +294,7 @@ export class VenteMetierService {
     const manager = getManager();
     const { annee } = query;
 
-    const anneeInt = parseInt(annee, 10);
+    const anneeInt = parseInt(annee);
 
     const ventesDeLAnnee = await manager.createQueryBuilder(AchatEntity, 'achat')
       .select([

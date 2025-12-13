@@ -1,0 +1,19 @@
+{
+    "port": 4000,
+    "limit":{
+        "postData":"50mb",
+        "urlEncoded":"50mb"
+    },
+    "db":{
+        "type": "mysql",
+        "host": "localhost",
+        "port": 3306,
+        "username": "root",
+        "password": "",
+        "database": "gesthon_db",
+        "dropSchema":false,         
+        "autoLoadEntities": true,
+        "synchronize": true,
+        "logging": false
+    }
+}

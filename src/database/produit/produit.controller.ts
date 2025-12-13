@@ -1,11 +1,11 @@
-import {Catch,Controller} from '@nestjs/common';
+import { BadRequestException, Catch, Controller, InternalServerErrorException } from '@nestjs/common';
 import { ParseJsonPipe } from '../../core/shared/pipes/parse-json.pipe';
 import { ValidationPipe } from '../../core/shared/pipes/validation.pipe';
 import { LoggingInterceptor } from '../../core/shared/interceptors/logging.interceptor';
 import { ProduitService } from './produit.service';
 import { ProduitDto } from './produit.dto';
 import { ParseJsonObjectPipe } from 'src/core/shared/pipes/json-object.pipe';
-import { Body, Param } from '@nestjs/common/decorators/http/route-params.decorator';
+import { Body, Param, Query } from '@nestjs/common/decorators/http/route-params.decorator';
 import { Delete, Get, Post, Put } from '@nestjs/common/decorators/http/request-mapping.decorator';
 import { UseInterceptors } from '@nestjs/common/decorators/core/use-interceptors.decorator';
 
@@ -13,7 +13,7 @@ import { UseInterceptors } from '@nestjs/common/decorators/core/use-interceptors
 @UseInterceptors(LoggingInterceptor)
 @Controller('produit')
 export class ProduitController {
-  constructor(private readonly produitService: ProduitService) {}
+  constructor(private readonly produitService: ProduitService) { }
 
   @Post()
   async save(@Body(new ValidationPipe()) produitDto: ProduitDto) {
@@ -25,7 +25,7 @@ export class ProduitController {
   async update(
     @Body(new ValidationPipe()) produitDto: ProduitDto,
     @Param('primaryKey', new ParseJsonPipe()) primaryKey,
-    ) {
+  ) {
     const result = await this.produitService.update(produitDto, primaryKey);
     return result;
   }
@@ -42,11 +42,47 @@ export class ProduitController {
     return result;
   }
 
-  @Get('query/:findOption')
-  async findQuery(@Param('findOption', new ParseJsonObjectPipe()) findOption) {
-    const result = await this.produitService.find(findOption);
-    return result;
+  // @Get('query/:findOption')
+  // async findQuery(@Param('findOption', new ParseJsonObjectPipe()) findOption) {
+  //   console.log('findOption', findOption);
+
+  //   const result = await this.produitService.find(findOption);
+  //   return result;
+  // }
+
+  // @Get('query/:findOption')
+  // async findQuery(@Param('findOption', new ParseJsonObjectPipe()) findOption) {
+  //   const result = await this.produitService.find(findOption);
+  //   return result;
+  // }
+
+  @Get('query')
+  async findQuery(@Query('findOption') findOptionString: string) {
+    // console.log('findOptionString reçu:', findOptionString);
+
+    try {
+      const findOption = JSON.parse(findOptionString);
+      const result = await this.produitService.find(findOption);
+      return result;
+    } catch (error) {
+      console.error('Erreur parsing JSON:', error);
+      throw new BadRequestException('Paramètre findOption invalide');
+    }
   }
+
+
+  // @Get('query/:findOption')
+  // async findQuery(@Param('findOption', new ParseJsonObjectPipe()) findOption) {
+  //   try {
+  //     const result = await this.produitService.find(findOption);
+  //     return result;
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: 'Erreur lors de la récupération des produits',
+  //       detail: error.message,
+  //     });
+  //   }
+  // }
 
   @Get(':primaryKey')
   async findById(@Param('primaryKey', new ParseJsonPipe()) primaryKey) {

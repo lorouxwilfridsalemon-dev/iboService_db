@@ -21,6 +21,10 @@ export class ProduitDto {
   readonly prixKg3Tonnes: number;
 
   @IsOptional()
+  @IsInt()
+  readonly prixKgGrosClient: number;
+
+  @IsOptional()
   @IsString()
   readonly empty1: string;
 

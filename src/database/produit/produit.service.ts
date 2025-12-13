@@ -11,7 +11,7 @@ export class ProduitService {
   constructor(
     @InjectRepository(ProduitEntity)
     private readonly produitRepository: Repository<ProduitEntity>,
-  ) {}
+  ) { }
 
   async save(produit: object): Promise<Response> {
     const result = await this.produitRepository.save(produit as ProduitEntity);
@@ -39,6 +39,13 @@ export class ProduitService {
     );
     return result;
   }
+
+  // async find(query: object): Promise<Response> {
+  //   const result = await this.produitRepository.find(
+  //     TypeOrmHttpParamQuery(query),
+  //   );
+  //   return result;
+  // }
 
   async findById(primaryKey: object): Promise<Response> {
     const result = await this.produitRepository.findOne(primaryKey);
