@@ -11,33 +11,30 @@ export class TypeClientService {
   constructor(
     @InjectRepository(TypeClientEntity)
     private readonly typeClientRepository: Repository<TypeClientEntity>,
-  ) {}
+  ) { }
+
+  async find(query: object): Promise<Response> {
+    return await this.typeClientRepository.find(
+      TypeOrmHttpParamQuery(query),
+    );
+  }
 
   async save(typeClient: object): Promise<Response> {
-    const result = await this.typeClientRepository.save(typeClient as TypeClientEntity);
-    return result;
+    return await this.typeClientRepository.save(typeClient as TypeClientEntity);
   }
 
   async update(typeClient: object, primaryKey: object): Promise<Response> {
     const response: any = await this.findById(primaryKey);
-    const result = await this.typeClientRepository.save({
-      ...response.data,
+    return await this.typeClientRepository.save({
+      ...response,
       ...typeClient,
     });
-    return result;
   }
 
   async delete(primaryKey: object): Promise<Response> {
-    const response: any = await this.findById(primaryKey);
-    const result: any = await this.typeClientRepository.delete(primaryKey);
-    return response;
-  }
-
-  async find(query: object): Promise<Response> {
-    const result = await this.typeClientRepository.find(
-      TypeOrmHttpParamQuery(query),
-    );
-    return result;
+    await this.findById(primaryKey);
+    await this.typeClientRepository.delete(primaryKey);
+    return { success: true };
   }
 
   async findById(primaryKey: object): Promise<Response> {
@@ -45,7 +42,10 @@ export class TypeClientService {
     if (!isDefined(result)) {
       throw new HttpException(
         {
-          status: { code: HttpStatus.NOT_FOUND, error: `Aucun type client trouvé` },
+          status: {
+            code: HttpStatus.NOT_FOUND,
+            error: `Aucun type client trouvé`,
+          },
         },
         HttpStatus.NOT_FOUND,
       );
@@ -53,4 +53,21 @@ export class TypeClientService {
     return result;
   }
 }
+
+
+
+
+// async findById(primaryKey: object): Promise<Response> {
+//   const result = await this.typeClientRepository.findOne(primaryKey);
+//   if (!isDefined(result)) {
+//     throw new HttpException(
+//       {
+//         status: { code: HttpStatus.NOT_FOUND, error: `Aucun type client trouvé` },
+//       },
+//       HttpStatus.NOT_FOUND,
+//     );
+//   }
+//   return result;
+// }
+
 

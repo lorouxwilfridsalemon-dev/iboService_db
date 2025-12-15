@@ -10,15 +10,15 @@ export class ProduitDto {
 
   @IsOptional()
   @IsInt()
-  readonly prixKgParDefaut: number;
+  readonly prixKg: number;
 
   @IsOptional()
   @IsInt()
-  readonly prixKg1Tonne: number;
+  readonly prixKgPalier1: number;
 
   @IsOptional()
   @IsInt()
-  readonly prixKg3Tonnes: number;
+  readonly prixKgPalier2: number;
 
   @IsOptional()
   @IsInt()

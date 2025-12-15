@@ -14,17 +14,17 @@ export class ProduitEntity {
   @Column(DefaultEntity.convertDataType({ type: 'varchar', name: 'libelle_pro', length: 50, scale: 0, nullable: false, unique: false }))
   libelle: string;
 
-  // Prix au kilogramme paramétrable pour ce poisson 
+  // Prix au kilogramme par défaut pour ce poisson 
   @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_pro', length: 11, scale: 0, nullable: true, unique: false }))
   prixKg: number;
 
-  // Prix avec réduction 1 tonne 
+  // Prix avec réduction palier 1 (ex : premier seuil de poids)
   @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_1_tonne_pro', length: 11, scale: 0, nullable: true, unique: false }))
-  prixKg1Tonne: number;
+  prixKgPalier1: number;
 
-  // Prix avec réduction 3 tonnes 
+  // Prix avec réduction palier 2 (ex : deuxième seuil de poids)
   @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_3_tonnes_pro', length: 11, scale: 0, nullable: true, unique: false }))
-  prixKg3Tonnes: number;
+  prixKgPalier2: number;
 
   // Prix avec réduction pour les gros clients 
   @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_gros_client_pro', length: 11, scale: 0, nullable: true, unique: false }))

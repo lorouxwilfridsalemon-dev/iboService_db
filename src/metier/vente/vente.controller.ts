@@ -1,4 +1,4 @@
-import { Body, Catch, Controller, Post, UseInterceptors } from '@nestjs/common';
+import { Body, Catch, Controller, Get, Post, UseInterceptors } from '@nestjs/common';
 import { ValidationPipe } from '../../core/shared/pipes/validation.pipe';
 import { LoggingInterceptor } from '../../core/shared/interceptors/logging.interceptor';
 import { VenteMetierService } from './vente.service';
@@ -39,5 +39,12 @@ export class VenteMetierController {
   async venteParSemaine(@Body() query: any) {
     return await this.venteMetierService.venteParSemaine(query);
   }
+
+  @Get('listeVentes')
+async listeVentes() {
+  return await this.venteMetierService.listeVentes();
+}
  }
+
+ 
 

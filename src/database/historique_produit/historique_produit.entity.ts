@@ -19,10 +19,10 @@ export class HistoriqueProduitEntity {
   prixKg: number;
 
   @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_1_tonne_hpr', length: 11, scale: 0, nullable: true, unique: false }))
-  prixKg1Tonne: number;
+  prixKgPalier1: number;
 
   @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_3_tonnes_hpr', length: 11, scale: 0, nullable: true, unique: false }))
-  prixKg3Tonnes: number;
+  prixKgPalier2: number;
 
   @Column(DefaultEntity.convertDataType({ type: 'varchar', name: 'empty1_hpr', length: 100, scale: 0, nullable: true, unique: false }))
   empty1: string;

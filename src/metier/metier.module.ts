@@ -2,7 +2,8 @@ import { EventsModule } from './gateways/events.module';
 import { Module } from '@nestjs/common';
 import { FilesModule } from './../files/files.module';
 import { VenteMetierModule } from './vente/vente.module';
-
+import { ProduitMetierModule } from './produit/produit.module';
+import { ClientMetierModule } from './client/client.module';
 
 @Module({
     imports: [
@@ -10,6 +11,8 @@ import { VenteMetierModule } from './vente/vente.module';
         EventsModule,
         FilesModule,
         VenteMetierModule,
+        ProduitMetierModule,
+        ClientMetierModule,
 
     ],
     providers: [],

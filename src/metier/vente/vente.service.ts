@@ -19,20 +19,27 @@ export class VenteMetierService {
 
   async creerVente(venteData: any) {
     return await this.entityManager.transaction(async (entityManager) => {
-      
-      // ============================================
-      // ÉTAPE 1 : DÉTERMINER LE TYPE DE CLIENT
-      // ============================================
-      // IDs fixes : id=1 = Client Normal, id=2 = Gros Client
-      const GROS_CLIENT_ID = 2;
-      const isGrosClient = venteData.clientTypeClient === GROS_CLIENT_ID;
+      // ÉTAPE 1 : DÉTERMINER LE TYPE DE CLIENT (AVEC BOOLÉEN)
 
-      // ============================================
+      // IDs fixes : id=1 = Client Normal, id=2 = Gros Client
+      const CLIENT_NORMAL_ID = 1;
+      const GROS_CLIENT_ID = 2;
+
+      // Le frontend envoie un booléen au lieu d'un ID
+
+      const isGrosClient = venteData.isGrosClient === true;
+
       // ÉTAPE 2 : OBTENIR LE CLIENT
-      // ============================================
+
       let client: ClientEntity;
 
       if (isGrosClient) {
+        //  GROS CLIENT 
+        // Vérifier que clientId est présent
+        if (!venteData.clientId) {
+          throw new Error('clientId est obligatoire pour un gros client');
+        }
+
         // Gros client : charger par ID (client déjà sélectionné dans la liste)
         client = await entityManager.findOne(ClientEntity, {
           where: { id: venteData.clientId }
@@ -42,23 +49,31 @@ export class VenteMetierService {
           throw new Error('Client gros client introuvable');
         }
         console.log(`Gros client sélectionné: ${client.nomPrenom}`);
+
       } else {
-        // Client normal : chercher par numéro ou créer
+        //  CLIENT NORMAL
+        // Vérifier que clientNumero est présent
+        if (!venteData.clientNumero) {
+          throw new Error('clientNumero est obligatoire pour un client normal');
+        }
+
+        // Chercher le client par numéro
         client = await entityManager.findOne(ClientEntity, {
           where: { numero: venteData.clientNumero }
         });
 
         if (!client) {
+          // Client n'existe pas → créer
           console.log(`Nouveau client normal: ${venteData.clientNom}`);
 
-          // Charger le type de client normal
+          // Charger le type "Client Normal" (ID fixe = 1)
           const typeClientNormal = await entityManager.findOne(TypeClientEntity, {
-            where: { id: venteData.clientTypeClient }
+            where: { id: CLIENT_NORMAL_ID }
           });
 
           // Créer le client
           client = entityManager.create(ClientEntity, {
-            nomPrenom: venteData.clientNom,
+            nomPrenom: venteData.clientNom || 'Client sans nom',
             numero: venteData.clientNumero,
             typeClient: typeClientNormal,
             geler: 0,
@@ -67,21 +82,22 @@ export class VenteMetierService {
           });
 
           client = await entityManager.save(ClientEntity, client);
+          console.log(`Client normal créé: ${client.nomPrenom}`);
+
         } else {
+          // Client existe → utiliser
           console.log(`Client normal existant: ${client.nomPrenom}`);
         }
       }
 
-      // ============================================
       // ÉTAPE 3 : CHARGER L'UTILISATEUR
-      // ============================================
+
       const utilisateur = await entityManager.findOne(UtilisateurEntity, {
         where: { id: venteData.utilisateurId }
       });
 
-      // ============================================
       // ÉTAPE 4 : CHARGER LE PRODUIT (THON)
-      // ============================================
+
       // Puisqu'il n'y a qu'un seul produit (thon), on le charge une seule fois
       const produit = await entityManager.findOne(ProduitEntity, {
         where: { id: venteData.details[0].produitId }
@@ -90,20 +106,16 @@ export class VenteMetierService {
       if (!produit) {
         throw new Error('Produit introuvable');
       }
-
-      // ============================================
       // ÉTAPE 5 : CALCULER LE POIDS TOTAL
-      // ============================================
+
       // Additionner tous les poids de toutes les pesées
       let poidsTotal = 0;
       for (const element of venteData.details) {
         poidsTotal += element.poids;
       }
-      // Exemple : 500 + 600 + 200 = 1300 kg
 
-      // ============================================
       // ÉTAPE 6 : CALCULER LE PRIX AU KG
-      // ============================================
+
       let prixKg = 0;
 
       if (isGrosClient) {
@@ -113,37 +125,37 @@ export class VenteMetierService {
         // Client normal : prix selon poids total
         if (poidsTotal >= 3000) {
           // 3 tonnes ou plus
-          prixKg = produit.prixKg3Tonnes;
+          prixKg = produit.prixKgPalier2;
         } else if (poidsTotal >= 1000) {
           // 1 tonne ou plus
-          prixKg = produit.prixKg1Tonne;
+          prixKg = produit.prixKgPalier1;
         } else {
           // Moins de 1 tonne : prix de base
           prixKg = produit.prixKg;
         }
       }
 
-      // ============================================
-      // ÉTAPE 7 : CALCULER LE MONTANT TOTAL
-      // ============================================
-      const montantTotal = poidsTotal * prixKg;
-      // Exemple : 1300 kg × 2750 FCFA/kg = 3 575 000 FCFA
 
-      // ============================================
+      // ÉTAPE 7 : CALCULER LE MONTANT TOTAL
+
+      const montantTotal = poidsTotal * prixKg;
+
+
+
       // ÉTAPE 8 : GÉRER LE PAIEMENT
-      // ============================================
-      const montantPaye = venteData.montantPaye || 0;
+
+      const montantPaye = venteData.montantPaye;
       const solde = montantTotal - montantPaye;
 
       // Charger la modalité de paiement par ID fixe (id=1 = Espèces)
-    
+
       const modalitePaiement = await entityManager.findOne(ModalitePaiementEntity, {
         where: { id: venteData.modalitePaiementId }
       });
 
-      // ============================================
+
       // ÉTAPE 9 : CRÉER L'ACHAT
-      // ============================================
+
       const now = new Date();
 
       const achat = entityManager.create(AchatEntity, {
@@ -160,9 +172,8 @@ export class VenteMetierService {
 
       const achatSauvegarde = await entityManager.save(AchatEntity, achat);
 
-      // ============================================
       // ÉTAPE 10 : CRÉER LES DÉTAILS (PESÉES)
-      // ============================================
+
       const detailsCrees = [];
 
       for (const element of venteData.details) {
@@ -187,9 +198,8 @@ export class VenteMetierService {
         });
       }
 
-      // ============================================
       // ÉTAPE 11 : RETOURNER LE RÉSULTAT
-      // ============================================
+
       return {
         success: true,
         message: 'Vente créée avec succès',
@@ -330,10 +340,6 @@ export class VenteMetierService {
     const manager = getManager();
     const { date } = query;
 
-    // Convertir la date en objet Date
-    const dateObj = new Date(date);
-    const annee = dateObj.getFullYear();
-    
     // Calculer le numéro de semaine ISO (semaine commence le lundi)
     // Utiliser MySQL WEEK() avec mode 1 (ISO standard)
     const ventesDeLaSemaine = await manager.createQueryBuilder(AchatEntity, 'achat')
@@ -369,8 +375,45 @@ export class VenteMetierService {
 
     return resultatsAvecPesees;
   }
-  
+
+  async listeVentes() {
+    const manager = getManager();
+    const ventes = await manager.createQueryBuilder(AchatEntity, 'achat')
+      .select([
+        "achat",
+        "client",
+        "typeClient",
+        "detailAchat",
+        "produit"
+
+      ])
+      .leftJoin("achat.client", "client")
+      .leftJoin("client.typeClient", "typeClient")
+      .leftJoin("achat.detailsAchat", "detailAchat")
+      .leftJoin("detailAchat.produit", "produit")
+      .where('achat.geler = 0')
+      .orderBy('achat.dateCreation', 'DESC')
+      .getMany();
+
+    // Ajouter le nombre de pesées pour chaque vente
+    const resultatsAvecPesees = ventes.map(achat => {
+      // Compter le nombre de pesées (détails d'achat)
+      const nombrePesees = achat.detailsAchat?.length || 0;
+
+      // Retourner l'achat avec la propriété nombrePesees ajoutée
+      return {
+        ...achat,
+        nombrePesees: nombrePesees
+      };
+    });
+
+    return resultatsAvecPesees;
+
+
+  }
 }
+
+
 
 
 
