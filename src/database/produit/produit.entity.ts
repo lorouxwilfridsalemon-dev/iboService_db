@@ -19,11 +19,11 @@ export class ProduitEntity {
   prixKg: number;
 
   // Prix avec réduction palier 1 (ex : premier seuil de poids)
-  @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_1_tonne_pro', length: 11, scale: 0, nullable: true, unique: false }))
+  @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_palier_1_pro', length: 11, scale: 0, nullable: true, unique: false }))
   prixKgPalier1: number;
 
   // Prix avec réduction palier 2 (ex : deuxième seuil de poids)
-  @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_3_tonnes_pro', length: 11, scale: 0, nullable: true, unique: false }))
+  @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'prix_kg_palier_2_pro', length: 11, scale: 0, nullable: true, unique: false }))
   prixKgPalier2: number;
 
   // Prix avec réduction pour les gros clients 

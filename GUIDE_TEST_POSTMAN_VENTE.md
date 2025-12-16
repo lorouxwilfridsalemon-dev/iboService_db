@@ -43,26 +43,27 @@ Imaginez un marché aux poissons :
 ### 🔄 Workflow d'une vente
 
 ```
-1. Client arrive → On détermine le type de client
-   ├─ Type Client ID = 1 → Client Normal
-   └─ Type Client ID = 2 → Gros Client
+1. Client arrive → Le frontend envoie un booléen `isGrosClient`
+   ├─ `isGrosClient = false` → Client Normal
+   └─ `isGrosClient = true`  → Gros Client
 
-2. Si Client Normal :
-   ├─ On cherche s'il existe déjà (par numéro)
-   ├─ Si nouveau → On le crée dans la base
-   └─ Si existant → On utilise celui qui existe
+2. Si Client Normal (`isGrosClient = false`) :
+   ├─ Le frontend envoie `clientNumero` (et éventuellement `clientNom`)
+   ├─ On cherche le client par numéro
+   ├─ Si nouveau → On le crée automatiquement avec le type **Client Normal (id=1)**
+   └─ Si existant → On utilise le client existant
 
-3. Si Gros Client :
-   └─ On charge directement le client par ID
+3. Si Gros Client (`isGrosClient = true`) :
+   └─ Le frontend envoie `clientId` (client déjà existant sélectionné dans une liste)
 
 4. Calcul du poids total (toutes les pesées additionnées)
 
 5. Calcul du prix au kg selon :
-   ├─ Gros Client → prixKgGrosClient (prix fixe)
-   └─ Client Normal → prix selon poids total
-       ├─ ≥ 3000 kg → prixKg3Tonnes
-       ├─ ≥ 1000 kg → prixKg1Tonne
-       └─ < 1000 kg → prixKg (prix de base)
+   ├─ Gros Client → `prixKgGrosClient` (prix fixe)
+   └─ Client Normal → prix selon poids total avec des **paliers**
+       ├─ ≥ 3000 kg → `prixKgPalier2`
+       ├─ ≥ 1000 kg → `prixKgPalier1`
+       └─ < 1000 kg → `prixKg` (prix de base)
 
 6. Calcul du montant total = poids total × prix au kg
 
@@ -120,14 +121,17 @@ Imaginez un marché aux poissons :
 
 ### 🐟 Table `produit_pro` (Les produits/poissons)
 
-| Colonne                   | Type        | Obligatoire | Description                                      |
-| ------------------------- | ----------- | ----------- | ------------------------------------------------ |
-| `id_pro`                  | integer     | ✅          | ID unique (auto-généré)                          |
-| `libelle_pro`             | varchar(50) | ✅          | Nom du produit (ex: "Thon")                      |
-| `prix_kg_pro`             | integer     | ❌          | Prix au kilogramme (prix de base)                |
-| `prix_kg_1_tonne_pro`     | integer     | ❌          | Prix au kg si ≥ 1000 kg (réduction -250 FCFA/kg) |
-| `prix_kg_3_tonnes_pro`    | integer     | ❌          | Prix au kg si ≥ 3000 kg (réduction -500 FCFA/kg) |
-| `prix_kg_gros_client_pro` | integer     | ❌          | Prix au kg pour les gros clients (prix fixe)     |
+| Colonne                   | Type        | Obligatoire | Description                                              |
+| ------------------------- | ----------- | ----------- | -------------------------------------------------------- |
+| `id_pro`                  | integer     | ✅          | ID unique (auto-généré)                                  |
+| `libelle_pro`             | varchar(50) | ✅          | Nom du produit (ex: "Thon")                              |
+| `prix_kg_pro`             | integer     | ❌          | Prix au kilogramme (prix de base)                        |
+| `prix_kg_1_tonne_pro`     | integer     | ❌          | **Palier 1** : prix au kg à partir d'un certain poids    |
+| `prix_kg_3_tonnes_pro`    | integer     | ❌          | **Palier 2** : prix au kg à partir d'un poids plus élevé |
+| `prix_kg_gros_client_pro` | integer     | ❌          | Prix au kg pour les gros clients (prix fixe)             |
+
+> Dans le code, ces colonnes sont manipulées via les propriétés  
+> `prixKgPalier1` (pour `prix_kg_1_tonne_pro`) et `prixKgPalier2` (pour `prix_kg_3_tonnes_pro`).
 
 ### 👨‍💼 Table `utilisateur_uti` (Les utilisateurs)
 
@@ -179,9 +183,9 @@ Content-Type: application/json
 
 ```json
 {
+  "isGrosClient": false,
   "clientNom": "Amadou Diallo",
   "clientNumero": "+221771234567",
-  "clientTypeClient": 1,
   "clientId": null,
   "utilisateurId": 1,
   "montantPaye": 0,
@@ -203,16 +207,16 @@ Content-Type: application/json
 
 #### Champs obligatoires au niveau racine
 
-| Champ                | Type   | Obligatoire | Description                                         | Exemple           |
-| -------------------- | ------ | ----------- | --------------------------------------------------- | ----------------- |
-| `clientNom`          | string | ⚠️          | Nom et prénom (obligatoire si Client Normal)        | `"Amadou Diallo"` |
-| `clientNumero`       | string | ⚠️          | Numéro de téléphone (obligatoire si Client Normal)  | `"+221771234567"` |
-| `clientTypeClient`   | number | ✅          | ID du type de client (1 = Normal, 2 = Gros Client)  | `1`               |
-| `clientId`           | number | ⚠️          | ID du client (obligatoire si Gros Client, id=2)     | `null` ou `15`    |
-| `utilisateurId`      | number | ✅          | ID de l'utilisateur qui fait la vente               | `1`               |
-| `montantPaye`        | number | ❌          | Montant payé par le client (défaut: 0)              | `0` ou `50000`    |
-| `modalitePaiementId` | number | ❌          | ID de la modalité de paiement (défaut: 1 = Espèces) | `1`               |
-| `details`            | array  | ✅          | Liste des pesées (toutes pour le même produit)      | `[{...}, {...}]`  |
+| Champ                | Type    | Obligatoire | Description                                                             | Exemple           |
+| -------------------- | ------- | ----------- | ----------------------------------------------------------------------- | ----------------- |
+| `isGrosClient`       | boolean | ✅          | `true` si gros client, `false` si client normal                         | `false`           |
+| `clientNom`          | string  | ⚠️          | Nom et prénom (obligatoire si `isGrosClient = false`)                   | `"Amadou Diallo"` |
+| `clientNumero`       | string  | ⚠️          | Numéro de téléphone (obligatoire si `isGrosClient = false`)             | `"+221771234567"` |
+| `clientId`           | number  | ⚠️          | ID du client (obligatoire si `isGrosClient = true`)                     | `null` ou `15`    |
+| `utilisateurId`      | number  | ✅          | ID de l'utilisateur qui fait la vente                                   | `1`               |
+| `montantPaye`        | number  | ❌          | Montant payé par le client (défaut: 0)                                  | `0` ou `50000`    |
+| `modalitePaiementId` | number  | ❌          | ID de la modalité de paiement (défaut: 1 = Espèces)                     | `1`               |
+| `details`            | array   | ✅          | Liste des pesées (toutes pour le même produit dans la version actuelle) | `[{...}, {...}]`  |
 
 #### Champs dans `details` (array)
 
@@ -225,9 +229,9 @@ Content-Type: application/json
 
 ```json
 {
+  "isGrosClient": false,
   "clientNom": "Fatou Sarr",
   "clientNumero": "+221771111111",
-  "clientTypeClient": 1,
   "utilisateurId": 1,
   "montantPaye": 0,
   "modalitePaiementId": 1,
@@ -244,9 +248,9 @@ Content-Type: application/json
 
 ```json
 {
+  "isGrosClient": false,
   "clientNom": "Ibrahima Ba",
   "clientNumero": "+221772222222",
-  "clientTypeClient": 1,
   "utilisateurId": 1,
   "montantPaye": 2000000,
   "modalitePaiementId": 1,
@@ -267,14 +271,14 @@ Content-Type: application/json
 }
 ```
 
-**Note :** Total = 1100 kg → Réduction appliquée (prixKg1Tonne)
+**Note :** Total = 1100 kg → Réduction appliquée (palier 1 → `prixKgPalier1`)
 
 ### ✅ Exemple complet - Gros Client (prix fixe)
 
 ```json
 {
+  "isGrosClient": true,
   "clientId": 15,
-  "clientTypeClient": 2,
   "utilisateurId": 1,
   "montantPaye": 5000000,
   "modalitePaiementId": 1,
@@ -291,7 +295,7 @@ Content-Type: application/json
 }
 ```
 
-**Note :** Gros Client → Pas besoin de `clientNom` ni `clientNumero`, prix fixe appliqué
+**Note :** Gros Client → Pas besoin de `clientNom` ni `clientNumero`, prix fixe `prixKgGrosClient` appliqué
 
 ### 📥 Réponse en cas de succès
 
@@ -340,13 +344,13 @@ Content-Type: application/json
 
    → Utilisez un `id_uti` existant pour `utilisateurId`
 
-2. **Au moins 1 type de client** :
+2. **Au moins 1 client** (pour tester le cas `isGrosClient = true`) :
 
    ```sql
-   SELECT id_tyc, libelle_tyc FROM type_client_tyc;
+   SELECT id_cli, nom_prenom_client_cli, numero_client_cli FROM client_cli;
    ```
 
-   → Utilisez un `id_tyc` existant pour `clientTypeClient`
+   → Utilisez un `id_cli` existant pour `clientId` lorsque `isGrosClient = true`
 
 3. **Au moins 1 produit** :
    ```sql
@@ -356,23 +360,47 @@ Content-Type: application/json
 
 ### 🔄 Logique métier détaillée
 
-#### ÉTAPE 1 : Gestion du client
+#### ÉTAPE 1 : Gestion du client (avec `isGrosClient`)
 
 ```typescript
-// Le service cherche si le client existe déjà (par numéro)
-let client = await entityManager.findOne(ClientEntity, {
-  where: { numero: venteData.clientNumero },
-});
+const CLIENT_NORMAL_ID = 1;
+const isGrosClient = venteData.isGrosClient === true;
 
-// Si pas trouvé → création automatique
-if (!client) {
-  // Création du nouveau client
-  client = entityManager.create(ClientEntity, {
-    nomPrenom: venteData.clientNom,
-    numero: venteData.clientNumero,
-    typeClient: typeClient, // Chargé depuis la base
-    // ...
+let client: ClientEntity;
+
+if (isGrosClient) {
+  // GROS CLIENT : on attend un clientId
+  if (!venteData.clientId) {
+    throw new Error('clientId est obligatoire pour un gros client');
+  }
+
+  client = await entityManager.findOne(ClientEntity, {
+    where: { id: venteData.clientId },
   });
+} else {
+  // CLIENT NORMAL : on attend un clientNumero
+  if (!venteData.clientNumero) {
+    throw new Error('clientNumero est obligatoire pour un client normal');
+  }
+
+  client = await entityManager.findOne(ClientEntity, {
+    where: { numero: venteData.clientNumero },
+  });
+
+  if (!client) {
+    const typeClientNormal = await entityManager.findOne(TypeClientEntity, {
+      where: { id: CLIENT_NORMAL_ID },
+    });
+
+    client = entityManager.create(ClientEntity, {
+      nomPrenom: venteData.clientNom || 'Client sans nom',
+      numero: venteData.clientNumero,
+      typeClient: typeClientNormal,
+      // ...
+    });
+
+    client = await entityManager.save(ClientEntity, client);
+  }
 }
 ```
 
@@ -399,14 +427,14 @@ for (const element of venteData.details) {
 
 ```typescript
 if (isGrosClient) {
-  // Gros client : prix fixe (pas de réduction)
+  // Gros client : prix fixe (pas de réduction par poids)
   prixKg = produit.prixKgGrosClient;
 } else {
-  // Client normal : prix selon poids total
+  // Client normal : prix selon poids total avec paliers
   if (poidsTotal >= 3000) {
-    prixKg = produit.prixKg3Tonnes; // Réduction -500 FCFA/kg
+    prixKg = produit.prixKgPalier2; // Palier 2
   } else if (poidsTotal >= 1000) {
-    prixKg = produit.prixKg1Tonne; // Réduction -250 FCFA/kg
+    prixKg = produit.prixKgPalier1; // Palier 1
   } else {
     prixKg = produit.prixKg; // Prix de base
   }
@@ -415,10 +443,10 @@ if (isGrosClient) {
 
 **Ce que ça signifie pour vous** :
 
-- **Gros Client (id=2)** : Prix fixe `prixKgGrosClient`, pas de réduction
-- **Client Normal (id=1)** : Prix selon poids total
-  - ≥ 3000 kg → `prixKg3Tonnes` (réduction -500 FCFA/kg)
-  - ≥ 1000 kg → `prixKg1Tonne` (réduction -250 FCFA/kg)
+- **Gros Client (`isGrosClient = true`)** : Prix fixe `prixKgGrosClient`, pas de palier
+- **Client Normal (`isGrosClient = false`)** : Prix selon poids total
+  - ≥ 3000 kg → `prixKgPalier2`
+  - ≥ 1000 kg → `prixKgPalier1`
   - < 1000 kg → `prixKg` (prix de base)
 
 #### ÉTAPE 4 : Calcul du montant total
@@ -1150,9 +1178,9 @@ Avant de tester avec Postman, vérifiez que vous avez :
 
 3. **Les IDs doivent exister en base**
 
-   - `utilisateurId` → doit exister dans `utilisateur_uti`
-   - `clientTypeClient` → doit exister dans `type_client_tyc`
-   - `produitId` → doit exister dans `produit_pro`
+- `utilisateurId` → doit exister dans `utilisateur_uti`
+- `clientId` (si `isGrosClient = true`) → doit exister dans `client_cli`
+- `produitId` → doit exister dans `produit_pro`
 
 4. **Le client est créé automatiquement**
 
@@ -1167,10 +1195,10 @@ Avant de tester avec Postman, vérifiez que vous avez :
 
 ```json
 {
+  "isGrosClient": "boolean (true = Gros Client, false = Client Normal)",
   "clientNom": "string (si Client Normal)",
   "clientNumero": "string (si Client Normal)",
   "clientId": "number (si Gros Client)",
-  "clientTypeClient": "number (1 = Normal, 2 = Gros Client)",
   "utilisateurId": number,
   "montantPaye": "number (optionnel, défaut: 0)",
   "modalitePaiementId": "number (optionnel, défaut: 1 = Espèces)",

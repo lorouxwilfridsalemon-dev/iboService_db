@@ -22,16 +22,15 @@ export class ClientMetierService {
       .orderBy('client.dateCreation', 'DESC')
       .getMany();
 
-
+    
     return clients;
   }
 
-
-  async creerClient(body: any) {
-    const nomPrenom = body.nomPrenom;
-    const numero = body.numero;
-    const typeClientId = body.typeClientId;
-    const idusrcreation = body.idusrcreation;
+  async creerClient(clientData: any) {
+    const nomPrenom = clientData.nomPrenom;
+    const numero = clientData.numero;
+    const typeClientId = clientData.typeClientId;
+    const idusrcreation = clientData.idusrcreation;
 
     // Charger le type client
     const typeClient = await this.entityManager.findOne(TypeClientEntity, {

@@ -7,12 +7,12 @@ export class ClientMetierController {
     private readonly clientMetierService: ClientMetierService,
   ) { }
 
-  @Get('listeClients')
+  @Get('listeClient')
   async listeClient() {
     return await this.clientMetierService.listeClient();
   }
 
-  
+
   @Post('creerClient')
   async creerClient(@Body() body: any) {
     return await this.clientMetierService.creerClient(body);
