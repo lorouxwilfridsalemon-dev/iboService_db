@@ -58,12 +58,7 @@ Imaginez un marché aux poissons :
 
 4. Calcul du poids total (toutes les pesées additionnées)
 
-5. Calcul du prix au kg selon :
-   ├─ Gros Client → `prixKgGrosClient` (prix fixe)
-   └─ Client Normal → prix selon poids total avec des **paliers**
-       ├─ ≥ 3000 kg → `prixKgPalier2`
-       ├─ ≥ 1000 kg → `prixKgPalier1`
-       └─ < 1000 kg → `prixKg` (prix de base)
+5. Calcul du prix au kg : tous les clients utilisent `prixKg` (même prix pour tous)
 
 6. Calcul du montant total = poids total × prix au kg
 
@@ -121,17 +116,11 @@ Imaginez un marché aux poissons :
 
 ### 🐟 Table `produit_pro` (Les produits/poissons)
 
-| Colonne                   | Type        | Obligatoire | Description                                              |
-| ------------------------- | ----------- | ----------- | -------------------------------------------------------- |
-| `id_pro`                  | integer     | ✅          | ID unique (auto-généré)                                  |
-| `libelle_pro`             | varchar(50) | ✅          | Nom du produit (ex: "Thon")                              |
-| `prix_kg_pro`             | integer     | ❌          | Prix au kilogramme (prix de base)                        |
-| `prix_kg_1_tonne_pro`     | integer     | ❌          | **Palier 1** : prix au kg à partir d'un certain poids    |
-| `prix_kg_3_tonnes_pro`    | integer     | ❌          | **Palier 2** : prix au kg à partir d'un poids plus élevé |
-| `prix_kg_gros_client_pro` | integer     | ❌          | Prix au kg pour les gros clients (prix fixe)             |
-
-> Dans le code, ces colonnes sont manipulées via les propriétés  
-> `prixKgPalier1` (pour `prix_kg_1_tonne_pro`) et `prixKgPalier2` (pour `prix_kg_3_tonnes_pro`).
+| Colonne       | Type        | Obligatoire | Description                    |
+| ------------- | ----------- | ----------- | ------------------------------ |
+| `id_pro`      | integer     | ✅          | ID unique (auto-généré)       |
+| `libelle_pro` | varchar(50) | ✅          | Nom du produit (ex: "Thon")    |
+| `prix_kg_pro` | integer     | ❌          | Prix au kilogramme (pour tous) |
 
 ### 👨‍💼 Table `utilisateur_uti` (Les utilisateurs)
 
@@ -271,7 +260,7 @@ Content-Type: application/json
 }
 ```
 
-**Note :** Total = 1100 kg → Réduction appliquée (palier 1 → `prixKgPalier1`)
+**Note :** Le prix utilisé est `prixKg` (prix de base) pour tous les clients normaux, peu importe le poids.
 
 ### ✅ Exemple complet - Gros Client (prix fixe)
 
@@ -295,7 +284,7 @@ Content-Type: application/json
 }
 ```
 
-**Note :** Gros Client → Pas besoin de `clientNom` ni `clientNumero`, prix fixe `prixKgGrosClient` appliqué
+**Note :** Gros Client → Pas besoin de `clientNom` ni `clientNumero`, même prix `prixKg` que les clients normaux
 
 ### 📥 Réponse en cas de succès
 
@@ -426,28 +415,17 @@ for (const element of venteData.details) {
 #### ÉTAPE 3 : Calcul du prix au kg selon le type de client
 
 ```typescript
-if (isGrosClient) {
-  // Gros client : prix fixe (pas de réduction par poids)
-  prixKg = produit.prixKgGrosClient;
-} else {
-  // Client normal : prix selon poids total avec paliers
-  if (poidsTotal >= 3000) {
-    prixKg = produit.prixKgPalier2; // Palier 2
-  } else if (poidsTotal >= 1000) {
-    prixKg = produit.prixKgPalier1; // Palier 1
-  } else {
-    prixKg = produit.prixKg; // Prix de base
-  }
+// Tous les clients utilisent le même prix
+const prixKg = produit.prixKg || 0;
+if (prixKg === 0) {
+  throw new Error('Prix du produit non defini');
 }
 ```
 
 **Ce que ça signifie pour vous** :
 
-- **Gros Client (`isGrosClient = true`)** : Prix fixe `prixKgGrosClient`, pas de palier
-- **Client Normal (`isGrosClient = false`)** : Prix selon poids total
-  - ≥ 3000 kg → `prixKgPalier2`
-  - ≥ 1000 kg → `prixKgPalier1`
-  - < 1000 kg → `prixKg` (prix de base)
+- **Tous les clients** (gros client ou client normal) : utilisent le même prix `prixKg`
+- **Pas de distinction de prix** : le type de client n'affecte plus le prix au kg
 
 #### ÉTAPE 4 : Calcul du montant total
 

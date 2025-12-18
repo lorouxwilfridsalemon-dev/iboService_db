@@ -16,11 +16,15 @@ export class AchatEntity {
   @PrimaryGeneratedColumn(DefaultEntity.convertDataType({ type: 'integer', name: 'id_ach', length: 11, scale: 0, primary: true, nullable: false, unique: true }))
   id: number;
 
+  // Poids total de la vente (somme de toutes les pesées)
+  @Column(DefaultEntity.convertDataType({ type: 'decimal', name: 'poids_total_ach', length: 10, scale: 2, nullable: true, unique: false }))
+  poidsTotal: number;
+
   // Montant total d'une vente : toujours obligatoire
   @Column(DefaultEntity.convertDataType({ type: 'decimal', name: 'montant_total_ach', length: 10, scale: 0, nullable: false, unique: false }))
   montantTotal: number;
 
-  // Montant total payé (default 0)
+  // Montant total payé 
   @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'montant_paye_ach', length: 11, scale: 0, nullable: true, unique: false, default: 0 }))
   montantPaye: number;
 
@@ -46,9 +50,9 @@ export class AchatEntity {
   @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'idusrcreation_ach', scale: 0, nullable: true, unique: false }))
   idusrcreation: number;
 
-  @ManyToOne(() => ClientEntity, client => client.achats, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
+  @ManyToOne(() => ClientEntity, client => client.achats, { onDelete: 'RESTRICT', onUpdate: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'idclient' })
-  client: ClientEntity;
+  client: ClientEntity | null;
 
   @ManyToOne(() => UtilisateurEntity, utilisateur => utilisateur.achats, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'idutilisateur' })

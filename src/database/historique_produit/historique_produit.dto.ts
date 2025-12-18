@@ -18,14 +18,6 @@ export class HistoriqueProduitDto {
   readonly prixKg: number;
 
   @IsOptional()
-  @IsInt()
-  readonly prixKgPalier1: number;
-
-  @IsOptional()
-  @IsInt()
-  readonly prixKgPalier2: number;
-
-  @IsOptional()
   @IsString()
   readonly empty1: string;
 

@@ -5,6 +5,10 @@ export class AchatDto {
   @IsInt()
   readonly id: number;
 
+  @IsOptional()
+  @IsNumber()
+  readonly poidsTotal: number;
+
   @IsInt()
   readonly montantTotal: number;
 

@@ -8,21 +8,9 @@ export class ProduitDto {
   @IsString()
   readonly libelle: string;
 
-  @IsOptional()
+
   @IsInt()
   readonly prixKg: number;
-
-  @IsOptional()
-  @IsInt()
-  readonly prixKgPalier1: number;
-
-  @IsOptional()
-  @IsInt()
-  readonly prixKgPalier2: number;
-
-  @IsOptional()
-  @IsInt()
-  readonly prixKgGrosClient: number;
 
   @IsOptional()
   @IsString()

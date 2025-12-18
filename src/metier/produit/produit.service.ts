@@ -25,14 +25,12 @@ export class ProduitMetierService {
     const maintenant = new Date();
 
     const historique = this.entityManager.create(HistoriqueProduitEntity, {
-      // relation vers le produit d’origine
+      // relation vers le produit d'origine
       produit: produit,
 
       // copie des champs du produit au moment T
       libelle: produit.libelle,
       prixKg: produit.prixKg,
-      prixKgPalier1: produit.prixKgPalier1,
-      prixKgPalier2: produit.prixKgPalier2,
 
       // champs libres si tu veux les utiliser plus tard
       empty1: produit.empty1,

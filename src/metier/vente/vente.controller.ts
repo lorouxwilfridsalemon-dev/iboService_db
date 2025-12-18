@@ -17,6 +17,7 @@ export class VenteMetierController {
 
   @Post('creerVente')
   async creerVente(@Body() venteData: any) {
+    // Utilise la nouvelle version refactorisée
     return await this.venteMetierService.creerVente(venteData);
   }
 
