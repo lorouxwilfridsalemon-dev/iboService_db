@@ -866,6 +866,7 @@ export class VenteMetierService {
             nom: client.nomPrenom,
             numero: client.numero
           } : null,
+          poidsTotal: achatSauvegarde.poidsTotal,
           montantTotal: achatSauvegarde.montantTotal,
           montantPaye: achatSauvegarde.montantPaye,
           solde: achatSauvegarde.solde,
