@@ -1,6 +1,5 @@
-export { UtilisateurEntity } from './utilisateur.entity';
-export { UtilisateurDto } from './utilisateur.dto';
-export { UtilisateurService } from './utilisateur.service';
-export { UtilisateurController } from './utilisateur.controller';
-export { UtilisateurModule } from './utilisateur.module';
-
+export * from './utilisateur.entity';
+export * from './utilisateur.dto';
+export * from './utilisateur.module';
+export * from './utilisateur.service'; 
+export * from './utilisateur.controller'; 

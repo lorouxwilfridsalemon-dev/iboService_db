@@ -1,30 +1,25 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AnnonceEntity } from '../../database/annonce/annonce.entity';
+import { ReservationEntity } from '../../database/reservation/reservation.entity';
+import { UtilisateurEntity } from '../../database/utilisateur/utilisateur.entity';
+import { CategoriesEntity } from '../../database/categories/categories.entity';
 import { DashboardMetierController } from './dashboard.controller';
 import { DashboardMetierService } from './dashboard.service';
-
-
-import { AchatEntity } from '../../database/achat/achat.entity';
-import { DetailAchatEntity } from '../../database/detail_achat/detail_achat.entity';
-import { ClientEntity } from '../../database/client/client.entity';
-import { ProduitEntity } from '../../database/produit/produit.entity';
-import { UtilisateurEntity } from '../../database/utilisateur/utilisateur.entity';
-import { TypeClientEntity } from '../../database/type_client/type_client.entity';
+// import { DashboardMetierController } from './dashboard-metier.controller';
+// import { DashboardMetierService } from './dashboard-metier.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      AchatEntity,
-      DetailAchatEntity,
-      ClientEntity,
-      ProduitEntity,
+      AnnonceEntity,
+      ReservationEntity,
       UtilisateurEntity,
-      TypeClientEntity,
+      CategoriesEntity,  
     ]),
   ],
-  controllers: [DashboardMetierController],
+  controllers: [DashboardMetierController], 
   providers: [DashboardMetierService],
   exports: [DashboardMetierService],
 })
-export class DashboardMetierModule {}
-
+export class DashboardMetierModule {} 

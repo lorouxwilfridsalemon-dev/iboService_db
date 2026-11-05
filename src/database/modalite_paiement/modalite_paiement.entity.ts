@@ -1,9 +1,9 @@
 import { Column, Entity, Index, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { DefaultEntity } from '../../core/shared/systems/default.entity';
-import { AchatEntity } from '../achat/achat.entity';
+import { PaiementEntity } from '../paiement/paiement.entity';
 
 @Entity('modalite_paiement_mop')
-@Index('fx_idusrcreation_idx_mop', ['idusrcreation'])
+@Index('fx_idusrcreation_mop', ['idusrcreation'])
 @Index('fx_geler_idx_mop', ['geler'])
 export class ModalitePaiementEntity {
 
@@ -31,8 +31,8 @@ export class ModalitePaiementEntity {
   @Column(DefaultEntity.convertDataType({ type: 'integer', name: 'idusrcreation_mop', scale: 0, nullable: true, unique: false }))
   idusrcreation: number;
 
-  @OneToMany(() => AchatEntity, achat => achat.modalitePaiement, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
-  achats: AchatEntity[];
+  @OneToMany(() => PaiementEntity, paiement => paiement.modalitePaiement, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
+  paiements: PaiementEntity[];
 
   constructor(init?: Partial<any>) {
     Object.assign(this, init);
