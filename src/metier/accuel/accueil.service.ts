@@ -694,4 +694,6 @@ export class AccueilMetierService {
       piece: annonce.piece || null,
     }
   }
+
+  // Test de sauvegarde 
 } 
